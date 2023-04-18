@@ -7,8 +7,8 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 	 */
 	private function get_lock_backend_classes() {
 		return array(
-			'\soulseekah\WP_Lock\\WP_Lock_Backend_flock',
-			'\soulseekah\WP_Lock\\WP_Lock_Backend_wpdb',
+			'\soulseekah\WP_Lock\WP_Lock_Backend_flock',
+			'\soulseekah\WP_Lock\WP_Lock_Backend_wpdb',
 		);
 	}
 
