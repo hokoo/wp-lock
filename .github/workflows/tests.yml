@@ -1,0 +1,39 @@
+name: Run Tests
+
+on:
+  pull_request
+
+env:
+  WP_VERSION: "latest"
+
+jobs:
+  tests:
+    strategy:
+      matrix:
+        php-version: [ 7.4, 8.0, 8.1, 8.2 ]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Preparing env
+        uses: shivammathur/setup-php@v2
+
+        with:
+          php-version: ${{ matrix.php-version }}
+          tools: composer:v2, phpunit:9
+      - name: Set up WordPress and WordPress Test Library
+        uses: sjinks/setup-wordpress-test-library@master
+        with:
+          version: latest
+          db_user: root
+          db_password: root
+          db_name: wordpress_test
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Composer install dependencies
+        uses: ramsey/composer-install@v2
+      - name: run
+        run: |
+          sudo /etc/init.d/mysql start
+          bash tests/bin/install-wp-tests.sh wordpress_test root root localhost ${{ env.WP_VERSION }}
+          WP_TESTS_DIR=/tmp/wordpress-tests-lib/ 
+          phpunit -c phpunit.xml.dist

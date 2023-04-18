@@ -1,4 +1,7 @@
 <?php
+
+require dirname( __FILE__ ) . '/../vendor/yoast/phpunit-polyfills/phpunitpolyfills-autoload.php';
+
 $test_root = getenv( 'WP_TESTS_DIR' ) ? : dirname( __FILE__ ) . '/../wordpress-develop/tests/phpunit';
 
 require $test_root . '/includes/functions.php';
