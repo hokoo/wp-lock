@@ -1,9 +1,9 @@
 <?php
 
-use soulseekah\WP_Lock\helpers\Database;
-use soulseekah\WP_Lock\WP_Lock;
-use Soulseekah\WP_Lock\WP_Lock_Backend;
-use soulseekah\WP_Lock\WP_Lock_Backend_DB;
+use iTRON\WP_Lock\helpers\Database;
+use iTRON\WP_Lock\WP_Lock;
+use iTRON\WP_Lock\WP_Lock_Backend;
+use iTRON\WP_Lock\WP_Lock_Backend_DB;
 
 class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 
@@ -19,8 +19,8 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 	 */
 	private function get_lock_backend_classes() {
 		return array(
-			'\soulseekah\WP_Lock\\WP_Lock_Backend_flock',
-			'\soulseekah\WP_Lock\\WP_Lock_Backend_DB',
+			'\iTRON\WP_Lock\WP_Lock_Backend_flock',
+			'\iTRON\WP_Lock\WP_Lock_Backend_DB',
 		);
 	}
 

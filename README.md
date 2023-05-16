@@ -47,10 +47,10 @@ The above code is thread safe.
 
 ## Usage
 
-Require via Composer `composer require soulseekah/wp-lock` in your plugin.
+Require via Composer `composer require hokoo/wp-lock` in your plugin.
 
 ```php
-use soulseekah\WP_Lock;
+use iTRON\WP_Lock;
 
 require 'vendor/autoload.php';
 

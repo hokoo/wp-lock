@@ -5,7 +5,7 @@
  * Author: Gennady Kovshenin
  * Author URI: https://codeseekah.com
  * Version: 1.0
- * Plugin URI: https://github.com/soulseekah/wp-lock
+ * Plugin URI: https://github.com/iTRON/wp-lock
  * License: GPL2+
  */
 

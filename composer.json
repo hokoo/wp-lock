@@ -1,7 +1,7 @@
 {
-    "name": "soulseekah/wp-lock",
+    "name": "hokoo/wp-lock",
     "description": "A library for locking and mutexes for the WordPress Core",
-    "homepage": "https://github.com/soulseekah/wp-lock",
+    "homepage": "https://github.com/hokoo/wp-lock",
     "require": {
         "php": ">=7.4"
     },

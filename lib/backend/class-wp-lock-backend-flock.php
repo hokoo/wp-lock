@@ -1,5 +1,5 @@
 <?php
-namespace soulseekah\WP_Lock;
+namespace iTRON\WP_Lock;
 
 /**
  * An `flock` based lock backed implementation.

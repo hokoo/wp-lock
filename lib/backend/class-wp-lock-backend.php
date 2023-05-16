@@ -1,5 +1,5 @@
 <?php
-namespace soulseekah\WP_Lock;
+namespace iTRON\WP_Lock;
 
 /**
  * The lock backend interface.

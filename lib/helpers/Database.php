@@ -1,6 +1,6 @@
 <?php
 
-namespace soulseekah\WP_Lock\helpers;
+namespace iTRON\WP_Lock\helpers;
 
 final class Database {
 	public static function register_table( $key, $name = false ) {

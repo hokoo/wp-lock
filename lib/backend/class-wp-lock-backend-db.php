@@ -1,8 +1,8 @@
 <?php
 
-namespace soulseekah\WP_Lock;
+namespace iTRON\WP_Lock;
 
-use soulseekah\WP_Lock\helpers\Database;
+use iTRON\WP_Lock\helpers\Database;
 
 class WP_Lock_Backend_DB implements WP_Lock_Backend {
 	const TABLE_NAME = 'lock';
