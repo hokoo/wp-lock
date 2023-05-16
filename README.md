@@ -51,12 +51,35 @@ Require via Composer `composer require hokoo/wp-lock` in your plugin.
 
 ```php
 use iTRON\WP_Lock;
-
 require 'vendor/autoload.php';
+```
+Acquire a read blocking lock without a timeout.
+* Blocking means that the process will wait here until the lock is obtained (5 microseconds spinlock).
+* 0-second timeout means that the lock should be released, otherwise it will be released automatically after the php process is finished.
+* Non-zero timeout means that the lock might not be released manually, and then it will be done automatically after the specified number of seconds.
 
-$lock = new WP_Lock\WP_Lock( 'my-first-lock' );
+```php
+$lock = new WP_Lock\WP_Lock( 'my-lock' );
+
+$lock->acquire( WP_Lock::READ, true, 0 );
+// do something
+$lock->release();
+```
+Non-blocking lock acquisition does not wait for the other locks to be released, but returns false immediately if the lock is already acquired by another process. So, it should be checked for success.
+
+```php
+if ( $lock->acquire( WP_Lock::READ, false, 0 ) ) {
+    // do something
+    $lock->release();
+}
 ```
 
 ## Caveats
 
 In highly concurrent setups you may get Deadlock errors from MySQL. This is normal. The library handles these gracefully and retries the query as needed.
+
+This is a fork from original [soulseekah/wp-lock](https://github.com/soulseekah/wp-lock) with the following changes and advantages:
+- Custom database table is used as the WPDB locks' storage.
+- It allows manage locks in simple and convenient way.
+- Fast: making one lock takes up to 2 queries instead of 11 or more.
+- Readable: the code is well documented and easy to understand.
