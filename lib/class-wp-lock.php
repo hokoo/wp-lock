@@ -43,7 +43,7 @@ class WP_Lock {
 		$this->id = $resource_id;
 
 		if ( is_null( $lock_backend ) ) {
-			$lock_backend = new WP_Lock_Backend_flock();
+			$lock_backend = new WP_Lock_Backend_DB();
 		}
 
 		/**
