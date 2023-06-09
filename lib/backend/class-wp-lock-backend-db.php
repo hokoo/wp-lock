@@ -100,7 +100,7 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 		$expired    = " AND (`expire` = 0 OR `expire` >= " . ( microtime( true ) ) . ")";
 
 		$query      = "INSERT INTO {$this->get_table_name()} (`lock_key`, `original_key`, `level`, `pid`, `cid`, `expire`) " .
-		              "SELECT '%s', '%s', '%s', '%s', '%s', '%s' " .
+		              "SELECT '%s', '%s', '%s', '%s', '%s', '%s' FROM dual " .
 		              "WHERE NOT EXISTS (SELECT 1 FROM {$this->get_table_name()} WHERE `lock_key` = '%s'{$lock_level}{$expired})";
 
 		$attempt  = 0;
