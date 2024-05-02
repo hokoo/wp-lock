@@ -169,7 +169,8 @@ class WP_Lock_Backend_flock implements WP_Lock_Backend {
 		}
 
 		foreach ( $locks as $lock ) {
-			if ( $lock['level'] >= $level ) {
+			// If the lock is of the same or higher level AND expires in the future - return true.
+			if ( $lock['level'] >= $level && ( ! $lock['expiration'] || $lock['expiration'] > microtime( true ) ) ) {
 				fclose( $fd );
 				return true;
 			}
