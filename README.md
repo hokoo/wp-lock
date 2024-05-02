@@ -74,6 +74,26 @@ if ( $lock->acquire( WP_Lock::READ, false, 0 ) ) {
 }
 ```
 
+Check if the lock is acquired by another process without actually trying to acquire it.
+
+```php
+$another_lock = new WP_Lock\WP_Lock( 'my-lock' );
+
+if ( $lock->acquire( WP_Lock::READ, false, 0 ) ) {
+    $another_lock->lock_exists( WP_Lock::READ ); // true
+    $another_lock->lock_exists( WP_Lock::WRITE ); // false
+    
+    $lock->release();
+}
+
+if ( $lock->acquire( WP_Lock::WRITE, false, 0 ) ) {
+    $another_lock->lock_exists( WP_Lock::READ ); // true
+    $another_lock->lock_exists( WP_Lock::WRITE ); // true
+    
+    $lock->release();
+}
+```
+
 ## Caveats
 
 In highly concurrent setups you may get Deadlock errors from MySQL. This is normal. The library handles these gracefully and retries the query as needed.

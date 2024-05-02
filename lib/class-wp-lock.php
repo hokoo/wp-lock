@@ -97,6 +97,13 @@ class WP_Lock {
 		$this->locks--;
 	}
 
+	/**
+	 * Check if a lock exists.
+	 *
+	 * @param int $level The lock level.
+	 *
+	 * @return bool Whether the lock exists or not.
+	 */
 	public function lock_exists( $level = self::WRITE ): bool {
 		return $this->lock_backend->exists( $this->id, $level );
 	}
