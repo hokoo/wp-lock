@@ -96,4 +96,8 @@ class WP_Lock {
 
 		$this->locks--;
 	}
+
+	public function lock_exists( $level = self::WRITE ) {
+		return $this->lock_backend->lock_exists( $this->id, $level );
+	}
 }

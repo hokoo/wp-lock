@@ -173,6 +173,22 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 		return true;
 	}
 
+	public function exists( $id, $level = 0 ): bool {
+		global $wpdb;
+
+		$lock_key = $this->get_lock_key( $id );
+
+		// Expired locks policy. Check whether no unexpired locks exist.
+		$expired    = " AND (`expire` = 0 OR `expire` >= " . ( microtime( true ) ) . ")";
+
+		// Lock level policy. Check whether no locks with higher level exist.
+		$lock_level = " AND `level` >= $level";
+
+		$lock = $wpdb->get_row( "SELECT 1 FROM {$this->get_table_name()} WHERE `lock_key` = '$lock_key'{$lock_level}{$expired}", ARRAY_A );
+
+		return ! empty( $lock );
+	}
+
 	static function install() {
 		Database::install_table(
 			self::TABLE_NAME,

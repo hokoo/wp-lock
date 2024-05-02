@@ -112,16 +112,24 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 
 			$lock_backend_2 = new $lock_backend_class();
 			$this->assertFalse( $lock_backend_2->acquire( $resource_id, WP_Lock::READ, false, 0 ) );
+			$this->assertTrue( $lock_backend_2->lock_exists( $resource_id, WP_Lock::WRITE ) );
+			$this->assertTrue( $lock_backend_2->lock_exists( $resource_id, WP_Lock::READ ) );
 
 			$lock_backend_3 = new $lock_backend_class();
 			$this->assertFalse( $lock_backend_2->acquire( $resource_id, WP_Lock::WRITE, false, 0 ) );
 
 			$lock_backend->release( $resource_id );
+			$this->assertFalse( $lock_backend_3->lock_exists( $resource_id, WP_Lock::WRITE ) );
+			$this->assertFalse( $lock_backend_3->lock_exists( $resource_id, WP_Lock::READ ) );
+
 			$this->assertTrue( $lock_backend_3->acquire( $resource_id, WP_Lock::WRITE, false, 0 ) );
 			$this->assertFalse( $lock_backend_2->acquire( $resource_id, WP_Lock::READ, false, 0 ) );
 
 			$lock_backend_3->release( $resource_id );
 			$this->assertTrue( $lock_backend_2->acquire( $resource_id, WP_Lock::READ, false, 0 ) );
+
+			$this->assertFalse( $lock_backend->lock_exists( $resource_id, WP_Lock::WRITE ) );
+			$this->assertTrue( $lock_backend->lock_exists( $resource_id, WP_Lock::READ ) );
 		}
 	}
 

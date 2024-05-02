@@ -157,6 +157,30 @@ class WP_Lock_Backend_flock implements WP_Lock_Backend {
 	}
 
 	/**
+	 * Checks if a lock exists for the given lock ID, and the given level or above of it.
+	 */
+	public function exists( $id, $level ): bool {
+		$fd = fopen( $path = $this->get_path_for_id( $id ), 'a+b' );
+		flock( $fd, LOCK_EX );
+
+		if ( ! $locks = maybe_unserialize( file_get_contents( $path ) ) ) {
+			fclose( $fd );
+			return false;
+		}
+
+		foreach ( $locks as $lock ) {
+			if ( $lock['level'] >= $level ) {
+				fclose( $fd );
+				return true;
+			}
+		}
+
+		flock( $fd, LOCK_UN );
+		fclose( $fd );
+		return false;
+	}
+
+	/**
 	 * Get full path for given resource ID.
 	 *
 	 * @param string $id The resource ID.
