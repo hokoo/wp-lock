@@ -27,4 +27,6 @@ interface WP_Lock_Backend {
 	 * @return void
 	 */
 	public function release( $id );
+
+	public function exists( $id, $level ) : bool;
 }
