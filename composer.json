@@ -1,6 +1,7 @@
 {
     "name": "hokoo/wp-lock",
     "description": "A library for locking and mutexes for the WordPress Core",
+    "license": "MIT",
     "homepage": "https://github.com/hokoo/wp-lock",
     "require": {
         "php": ">=7.4"
