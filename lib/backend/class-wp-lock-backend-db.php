@@ -18,12 +18,8 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 	 * Lock backend constructor.
 	 */
 	public function __construct() {
-		register_shutdown_function( function ( $lock ) {
-			/**
-			 * Always try to unlock all storages when exiting.
-			 */
-			array_map( [ $lock, 'release' ], array_filter( $lock->lock_ids ) );
-		}, $this );
+		// Drop ghost locks.
+		$this->drop_ghosts();
 	}
 
 	/**
@@ -50,45 +46,73 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 		return md5( $id );
 	}
 
-	/**
-	 * Ghost lock is a lock that has no corresponding process and/or connection and has no expiration time.
-	 * Search for a ghost lock for specific lock_id in the database and remove it.
-	 *
-	 * @param $lock_id
-	 *
-	 * @return bool
-	 */
-	public function drop_ghosts( $lock_id ): bool {
+	public function drop_ghosts( $lock_id = null ): bool {
 		global $wpdb;
-		$lock_key = $this->get_lock_key( $lock_id );
-
-		$locks  = $wpdb->get_results( "SELECT * FROM {$this->get_table_name()} WHERE `lock_key` = '$lock_key'", ARRAY_A );
-		$ghosts = [];
-		foreach ( $locks as $lock ) {
-			if ( ! empty( $lock['expire'] ) && $lock['expire'] > microtime( true ) ) {
-				// This is an unexpired lock, keep it actual. No matter if it's a ghost or not.
-				continue;
-			}
-
-			if (
-				( empty( $lock['pid'] ) && empty( $lock['cid'] ) ) ||
-				! (
-					( ! empty( $lock['pid'] ) && file_exists( "/proc/{$lock['pid']}" ) ) ||
-					( ! empty( $lock['cid'] ) && $wpdb->get_var( $wpdb->prepare( "SELECT id FROM information_schema.processlist WHERE id = %s", $lock['cid'] ) ) )
-				)
-			) {
-				// This is a ghost lock, remove it.
-				$ghosts[] = $lock['id'];
-			}
-		}
+		$ghosts = $this->get_ghosts( $lock_id );
 
 		if ( ! empty( $ghosts ) ) {
-			$wpdb->query( "DELETE FROM {$this->get_table_name()} WHERE id IN (" . implode( ',', $ghosts ) . ")" );
-
+			$wpdb->query( "DELETE FROM {$this->get_table_name()} WHERE id IN (" . implode( ',', array_column( $ghosts, 'id' ) ) . ")" );
 			return true;
 		}
 
 		return false;
+	}
+
+	/**
+	 * Ghost lock is a lock that has no corresponding process and/or connection and has no expiration time.
+	 * Search for a ghost lock for specific lock_id in the database and remove it.
+	 *
+	 * @return array List of ghost locks.
+	 */
+	public function get_ghosts( $lock_id = null ): array {
+		global $wpdb;
+
+		// Get all expired locks if no lock_id is provided.
+		$ids = $lock_id ? $wpdb->prepare( " AND `lock_key` = %s", $this->get_lock_key( $lock_id ) ) : '';
+
+		$expired = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$this->get_table_name()} WHERE 1=1 {$ids} AND `expire` <= %f",
+				microtime( true )
+			),
+			ARRAY_A
+		);
+
+		if ( empty( $expired ) ) {
+			return [];
+		}
+
+		// Following code supposes that there might be active locks with expiration field set 0.
+		// Filter out locks that have a corresponding process. They are not ghosts.
+		$expired = array_filter( $expired, function ( $lock ) {
+			return ! ( empty( $lock['expire'] ) && ! empty( $lock['pid'] ) && file_exists( "/proc/{$lock['pid']}" ) );
+		} );
+
+		if ( empty( $expired ) ) {
+			return [];
+		}
+
+		$cids = array_column( $expired, 'cid' );
+		if ( empty( $cids ) ) {
+			// Here we have only locks with no process ID and no connection ID. They are certainly ghosts.
+			return $expired;
+		}
+
+		// Get active CIDs from the database to check whether the given connections are still alive or not.
+		$active_cids = $wpdb->get_col(
+			"SELECT id FROM information_schema.processlist WHERE id IN (" . implode( ',', $cids ) . ")"
+		);
+
+		$ghosts = array_filter( $expired, function ( $lock ) use ( $active_cids ) {
+			// Throw out locks that have a corresponding connection. They are not ghosts.
+			return ! (
+				empty( $lock['expire'] ) &&
+				! empty( $lock['cid'] ) &&
+				in_array( $lock['cid'], $active_cids, true )
+			);
+		} );
+
+		return $ghosts;
 	}
 
 	/**
@@ -173,7 +197,7 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 		$lock_id = $this->lock_ids[ $lock_key ];
 		unset( $this->lock_ids[ $lock_key ] );
 
-		$wpdb->query( $wpdb->prepare( "DELETE FROM {$this->get_table_name()} WHERE id = %s", $lock_id ) );
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$this->get_table_name()} WHERE id = %d", $lock_id ) );
 
 		return true;
 	}
