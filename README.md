@@ -1,10 +1,11 @@
 # `WP_Lock`
-
-## because WordPress is not thread-safe
+This was previously a fork from original repo [soulseekah/wp-lock](https://github.com/soulseekah/wp-lock).
+Now it is standalone repo with the following changes and advantages:
+- Custom database table is used as the WPDB locks' storage that allows to manage locks in simple and convenient way.
+- Fast: making one lock takes up to one single query instead of 11 and more.
+- Readable: the code is well documented and easy to understand.
 
 [![PHPUnit Tests](https://github.com/soulseekah/wp-lock/actions/workflows/phpunit.yml/badge.svg)](https://github.com/soulseekah/wp-lock/actions/workflows/phpunit.yml)
-
-WordPress is no longer just a blogging platform. It's a framework. And like all mature frameworks it drastically needs a lock API.
 
 ## Example
 
@@ -97,9 +98,3 @@ if ( $lock->acquire( WP_Lock::WRITE, false, 0 ) ) {
 ## Caveats
 
 In highly concurrent setups you may get Deadlock errors from MySQL. This is normal. The library handles these gracefully and retries the query as needed.
-
-This is a fork from original [soulseekah/wp-lock](https://github.com/soulseekah/wp-lock) with the following changes and advantages:
-- Custom database table is used as the WPDB locks' storage.
-- It allows manage locks in simple and convenient way.
-- Fast: making one lock takes up to 2 queries instead of 11 or more.
-- Readable: the code is well documented and easy to understand.
