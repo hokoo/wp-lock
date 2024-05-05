@@ -238,6 +238,35 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 		$wpdb->suppress_errors( $suppress_errors );
 	}
 
+	public function test_ghosts( $expiration = 0 ) {
+		$resource_id = $this->generate_lock_resource_id();
+		$pid = getmypid();
+		$children = [];
+		$callback = new WP_Lock_Backend_Callback(
+			function( $resource_id, $expiration ) {
+				$lock_backend = new WP_Lock_Backend_DB();
+				// Born a ghost.
+				return $lock_backend->acquire( $resource_id, WP_Lock::WRITE, false, $expiration );
+			},
+			[ $resource_id, $expiration ]
+		);
+
+		$lock_backend = new WP_Lock_Backend_DB();
+
+		$children []= run_in_child( array( $callback, 'run' ) );
+		foreach ( $children as $child ) {
+			pcntl_waitpid( $child, $status );
+			$this->assertEmpty( pcntl_wexitstatus($status), "Unexpected exit code in _test_concurrency_pageviews_child PID $child");
+		}
+
+		$this->assertNotEmpty( $lock_backend->get_ghosts( $resource_id ) XOR $expiration, "No ghosts found for resourceID $resource_id, expiration $expiration, PID $pid" );
+		$this->assertTrue( $lock_backend->acquire( $resource_id, WP_Lock::WRITE, false, 0 ) XOR $expiration );
+		$this->assertEmpty( $lock_backend->get_ghosts( $resource_id ) );
+		$lock_backend->release( $resource_id );
+
+		++$expiration < 5 && $this->test_ghosts( $expiration );
+	}
+
 	public function _test_concurrency_pageviews_child( $post_id, $resource_id, $lock_backend_class) {
 		foreach ( range( 1, 100 ) as $_ ) {
 			$this->_test_concurrency_pageviews_increment_counter( $post_id, $resource_id, $lock_backend_class );
