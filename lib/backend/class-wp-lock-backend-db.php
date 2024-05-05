@@ -54,9 +54,11 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 	 * Ghost lock is a lock that has no corresponding process and/or connection and has no expiration time.
 	 * Search for a ghost lock for specific lock_id in the database and remove it.
 	 *
-	 * @return void
+	 * @param $lock_id
+	 *
+	 * @return bool
 	 */
-	public function drop_ghosts( $lock_id ) {
+	public function drop_ghosts( $lock_id ): bool {
 		global $wpdb;
 		$lock_key = $this->get_lock_key( $lock_id );
 
@@ -70,12 +72,10 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 
 			if (
 				( empty( $lock['pid'] ) && empty( $lock['cid'] ) ) ||
-				( ! empty( $lock['pid'] ) && ! file_exists( "/proc/{$lock['pid']}" ) ) ||
-				( ! empty( $lock['cid'] ) && empty(
-					$wpdb->get_var(
-						$wpdb->prepare( "SELECT id FROM information_schema.processlist WHERE id = %s", $lock['cid'] )
-					)
-					) )
+				! (
+					( ! empty( $lock['pid'] ) && file_exists( "/proc/{$lock['pid']}" ) ) ||
+					( ! empty( $lock['cid'] ) && $wpdb->get_var( $wpdb->prepare( "SELECT id FROM information_schema.processlist WHERE id = %s", $lock['cid'] ) ) )
+				)
 			) {
 				// This is a ghost lock, remove it.
 				$ghosts[] = $lock['id'];
@@ -84,7 +84,11 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 
 		if ( ! empty( $ghosts ) ) {
 			$wpdb->query( "DELETE FROM {$this->get_table_name()} WHERE id IN (" . implode( ',', $ghosts ) . ")" );
+
+			return true;
 		}
+
+		return false;
 	}
 
 	/**
@@ -140,15 +144,16 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 			return ( bool ) $acquired;
 		}
 
-		if ( ! $blocking ) {
+		// Maybe there are some ghost locks?
+		$dropped = $this->drop_ghosts( $id );
+
+		if ( ! $blocking && ! $dropped ) {
+			// There were no ghost locks and the acquiring isn't blocking, so nothing to wait.
 			return false;
 		}
 
-		// Maybe there are some ghost locks?
-		$this->drop_ghosts( $id );
-
-		// Spinlock.
-		usleep( 5000 );
+		// Run again immediately if there were ghost locks, otherwise wait spinning for the lock.
+		$dropped || usleep( 5000 );
 
 		return $this->acquire( $id, $level, $blocking, $expiration );
 	}
