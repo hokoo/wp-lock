@@ -181,9 +181,10 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 			$children[] = run_in_child( array( $callback, 'run' ) );
 		}
 
+		$pid = getmypid();
 		foreach ( $children as $child ) {
 			pcntl_waitpid( $child, $status );
-			$this->assertEquals(0, pcntl_wexitstatus($status), "Unexpected exit code in _test_concurrency_simple_child PID $child");
+			$this->assertEquals(0, pcntl_wexitstatus($status), "Unexpected exit code in _test_concurrency_simple_child PID $child [Parent PID: $pid ] [Resource ID: $resource_id ]");
 		}
 	}
 
