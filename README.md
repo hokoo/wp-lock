@@ -1,5 +1,5 @@
 # `WP Lock`
-[![PHPUnit Tests](https://github.com/soulseekah/wp-lock/actions/workflows/phpunit.yml/badge.svg)](https://github.com/soulseekah/wp-lock/actions/workflows/phpunit.yml)
+[![PHPUnit Tests](https://github.com/hokoo/wp-lock/actions/workflows/phpunit.yml/badge.svg)](https://github.com/hokoo/wp-lock/actions/workflows/phpunit.yml)
 
 > This was previously a fork from original repo [soulseekah/wp-lock](https://github.com/soulseekah/wp-lock) by Gennady Kovshenin.
 > Now here is the standalone repo with such changes as:
