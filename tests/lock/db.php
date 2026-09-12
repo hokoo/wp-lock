@@ -232,11 +232,23 @@ class WP_Lock_Backend_DB_UnitTestCase extends WP_UnitTestCase {
 		$table_name = $wpdb->prefix . WP_Lock_Backend_DB::TABLE_NAME;
 		$this->assertTrue( $this->index_exists( 'lock_key' ) );
 		$wpdb->query( "ALTER TABLE `{$table_name}` DROP INDEX `lock_key`" );
+		$wpdb->query( "ALTER TABLE `{$table_name}` MODIFY `expire` int(10) unsigned DEFAULT NULL" );
 		update_option( WP_Lock_Backend_DB::SCHEMA_VERSION_OPTION, '1.0.0', false );
 
 		try {
 			new WP_Lock_Backend_DB();
 			$this->assertTrue( $this->index_exists( 'lock_key' ) );
+			$this->assertSame(
+				'decimal',
+				$wpdb->get_var(
+					$wpdb->prepare(
+						'SELECT data_type FROM information_schema.columns
+						WHERE table_schema = DATABASE() AND table_name = %s AND column_name = %s',
+						$table_name,
+						'expire'
+					)
+				)
+			);
 			$this->assertSame(
 				WP_Lock_Backend_DB::SCHEMA_VERSION,
 				get_option( WP_Lock_Backend_DB::SCHEMA_VERSION_OPTION )

@@ -28,3 +28,4 @@ All notable changes to this project are documented in this file.
 - Prevented recursive, indefinitely blocking acquisition and unbounded database-error retry loops.
 - Prevented repeated acquisition from overwriting backend ownership state.
 - Suppressed and recovered from first-use missing-table errors without changing the caller's wpdb error-suppression state.
+- Preserved the full requested TTL instead of rounding expiration down to an integer-second boundary.

@@ -159,7 +159,7 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 		// Following code supposes that there might be active locks with expiration field set 0.
 		// Filter out locks that have a corresponding process. They are not ghosts.
 		$expired = array_filter( $expired, function ( $lock ) {
-			return ! ( empty( $lock['expire'] ) && ! empty( $lock['pid'] ) && file_exists( "/proc/{$lock['pid']}" ) );
+			return ! ( 0.0 === (float) $lock['expire'] && ! empty( $lock['pid'] ) && file_exists( "/proc/{$lock['pid']}" ) );
 		} );
 
 		if ( empty( $expired ) ) {
@@ -183,7 +183,7 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 		$ghosts = array_filter( $expired, function ( $lock ) use ( $active_cids ) {
 			// Throw out locks that have a corresponding connection. They are not ghosts.
 			return ! (
-				empty( $lock['expire'] ) &&
+				0.0 === (float) $lock['expire'] &&
 				! empty( $lock['cid'] ) &&
 				in_array( (int) $lock['cid'], $active_cids, true )
 			);
@@ -214,7 +214,7 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 		while ( true ) {
 			$lock_level = WP_Lock::READ === $level ? ' AND `level` > %d' : '';
 			$query      = "INSERT INTO {$this->get_table_name()} (`lock_key`, `original_key`, `level`, `pid`, `cid`, `expire`) " .
-				"SELECT %s, %s, %d, %d, CONNECTION_ID(), %d FROM dual " .
+				"SELECT %s, %s, %d, %d, CONNECTION_ID(), %f FROM dual " .
 				"WHERE NOT EXISTS (SELECT 1 FROM {$this->get_table_name()} WHERE `lock_key` = %s{$lock_level} " .
 				'AND (`expire` = 0 OR `expire` >= %f))';
 			$query_args = [
@@ -222,7 +222,7 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 				$id,
 				$level,
 				getmypid(),
-				$expiration ? $expiration + time() : 0,
+				$expiration ? $expiration + microtime( true ) : 0,
 				$lock_key,
 			];
 
@@ -348,7 +348,7 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 			level smallint(5) unsigned DEFAULT NULL,
 			pid int(10) unsigned DEFAULT NULL,
 			cid int(10) unsigned DEFAULT NULL,
-			expire int(10) unsigned DEFAULT NULL,
+			expire decimal(16,6) unsigned DEFAULT NULL,
 			PRIMARY KEY  (id),
 			KEY lock_key (lock_key),
 			KEY level (level)",

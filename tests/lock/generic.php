@@ -146,10 +146,20 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 	}
 
 	public function test_lock_expiration_releases_resource(): void {
+		global $wpdb;
+
 		$resource_id = $this->generate_lock_resource_id();
 		$writer      = new WP_Lock_Backend_DB();
+		$started_at  = microtime( true );
 
 		$this->assertTrue( $writer->acquire( $resource_id, WP_Lock::WRITE, false, 1 ) );
+		$stored_expiration = (float) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT `expire` FROM {$writer->get_table_name()} WHERE `lock_key` = %s",
+				md5( $resource_id )
+			)
+		);
+		$this->assertGreaterThan( $started_at + 0.99, $stored_expiration );
 		$this->assertFalse(
 			( new WP_Lock_Backend_DB() )->acquire( $resource_id, WP_Lock::READ, false, 0 )
 		);
