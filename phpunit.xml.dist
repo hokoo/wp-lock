@@ -16,4 +16,9 @@
 			<directory suffix=".php">tests/lock</directory>
 		</testsuite>
 	</testsuites>
+	<coverage processUncoveredFiles="true">
+		<include>
+			<directory suffix=".php">lib</directory>
+		</include>
+	</coverage>
 </phpunit>
