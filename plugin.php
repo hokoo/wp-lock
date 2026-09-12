@@ -4,9 +4,10 @@
  * Description: Concurrency locks for WordPress.
  * Author: Gennady Kovshenin
  * Author URI: https://codeseekah.com
- * Version: 1.0
- * Plugin URI: https://github.com/iTRON/wp-lock
- * License: GPL2+
+ * Version: 2.0.0
+ * Plugin URI: https://github.com/hokoo/wp-lock
+ * Requires PHP: 7.4
+ * License: MIT
  */
 
 defined( 'ABSPATH' ) || exit;

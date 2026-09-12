@@ -1,114 +1,139 @@
-# `WP Lock`
+# WP Lock
+
 [![PHPUnit Tests](https://github.com/hokoo/wp-lock/actions/workflows/phpunit.yml/badge.svg)](https://github.com/hokoo/wp-lock/actions/workflows/phpunit.yml)
 
-> This was previously a fork from original repo [soulseekah/wp-lock](https://github.com/soulseekah/wp-lock) by Gennady Kovshenin.
-> Now here is the standalone repo with such changes as:
-> - Custom database table is used as the WPDB locks' storage that allows to manage locks in simple and convenient way.
-> - Fast: making one lock takes up to one single query instead of 11 and more.
-> - Readable: the code is well documented and easy to understand.
+WP Lock provides shared READ locks and exclusive WRITE locks for WordPress. Version 2 uses a WordPress database table as its only bundled backend.
 
+## Requirements
 
-## WP Lock's Preconditions
+- PHP 7.4 or newer
+- WordPress with a MySQL-compatible database
 
-Consider the following user balance topup function that is susceptible to a race condition:
+Install the package with Composer:
 
-```php
-// Top-up function that is not thread-safe
-public function topup_user_balance( $user_id, $topup ) {
-	$balance = get_user_meta( $user_id, 'balance', true );
-	$balance = $balance + $topup;
-	update_user_meta( $user_id, 'balance', $balance );
-	return $balance;
-}
+```bash
+composer require hokoo/wp-lock
 ```
 
-Try to call the above code 100 times in 16 threads. The balance will be less than it is supposed to be.
-
-
-The code below is thread safe.
+Load Composer's autoloader from your plugin or application:
 
 ```php
-// A thread-safe version of the above topup function.
-public function topup_user_balance( $user_id, $topup ) {
-	$user_balance_lock = new WP_Lock( "$user_id:meta:balance" );
-	$user_balance_lock->acquire( WP_Lock::WRITE );
+use iTRON\WP_Lock\WP_Lock;
 
-	$balance = get_user_meta( $user_id, 'balance', true );
-	$balance = $balance + $topup;
-	update_user_meta( $user_id, 'balance', $balance );
-
-	$user_balance_lock->release();
-
-	return $balance;
-}
+require_once __DIR__ . '/vendor/autoload.php';
 ```
 
 ## Usage
 
-Require via Composer `composer require hokoo/wp-lock` in your plugin.
-
-Don't forget to include the Composer autoloader in your plugin and declare using of the `WP_Lock` class.
+Always check the result of `acquire()`. A non-blocking acquire returns `false` immediately on contention, while a blocking acquire returns `false` when its backend wait deadline is reached.
 
 ```php
-use iTRON\WP_Lock;
-require 'vendor/autoload.php';
+use iTRON\WP_Lock\WP_Lock;
+
+$lock = new WP_Lock( 'user:' . $user_id . ':balance' );
+
+if ( ! $lock->acquire( WP_Lock::WRITE ) ) {
+	throw new RuntimeException( 'Could not acquire the balance lock.' );
+}
+
+try {
+	$balance = (float) get_user_meta( $user_id, 'balance', true );
+	update_user_meta( $user_id, 'balance', $balance + $topup );
+} finally {
+	$lock->release();
+}
 ```
-Acquire a read blocking lock without a timeout.
+
+The public signature is:
 
 ```php
-$lock = new WP_Lock\WP_Lock( 'my-lock' );
-
-$lock->acquire( WP_Lock::READ, true, 0 );
-// do something, and then
-$lock->release();
+public function acquire( $level = self::WRITE, $blocking = true, $expiration = 30 ): bool
 ```
 
-```php
-public function acquire( $level = self::WRITE, $blocking = true, $expiration = 30 )
-```
+An individual `WP_Lock` object is non-reentrant. Acquire it once, release it once, and use another object if a separate ownership lifecycle is needed.
 
 ### Lock levels
 
-- `WP_Lock::READ` - other processes can acquire READ but not WRITE until the original lock is released. A shared read lock.
-- `WP_Lock::WRITE` (default) - other processes can't acquire READ or WRITE locks until the original lock is released. An exclusive read-write lock
+- `WP_Lock::READ` is shared with other readers but excludes writers.
+- `WP_Lock::WRITE` is exclusive and is the default.
 
-### Blocking policy
-* Blocking means that the process will wait here until the lock is obtained (5 microseconds spinlock).
-* Non-blocking lock acquisition does not wait for the other locks to be released, but returns false immediately if the lock is already acquired by another process. So, it should be checked for success.
+Only these exact integer constants are accepted. Numeric strings and other values throw `InvalidArgumentException`.
 
-```php
-if ( $lock->acquire( WP_Lock::READ, false, 0 ) ) {
-    // do something, and then
-    $lock->release();
-}
-```
-### Timeout policy
+### Blocking and database retries
 
-* 0-second timeout means that the lock should be released, otherwise it will be released automatically after the php process is finished.
-* Non-zero timeout means that the lock might not be released manually, and then it will be done automatically after the specified number of seconds.
+The bundled database backend polls for at most 30 seconds by default when `$blocking` is `true`. This wait limit is separate from the acquired lock's expiration. Non-blocking acquisition does not wait.
 
-## Lock Existence Check
+Failed acquisition queries are retried up to three times after the initial query. A persistent database error throws `RuntimeException`; contention itself returns `false` and is not treated as a database error.
 
-You may also want to check if a lock is acquired by another process without actually trying to acquire it.
+The database backend settings can be customized explicitly:
 
 ```php
-$another_lock = new WP_Lock\WP_Lock( 'my-lock' );
+use iTRON\WP_Lock\WP_Lock;
+use iTRON\WP_Lock\WP_Lock_Backend_DB;
 
-if ( $another_lock->acquire( WP_Lock::READ, false, 0 ) ) {
-    $lock->lock_exists( WP_Lock::READ ); // true
-    $lock->lock_exists( WP_Lock::WRITE ); // false
-    
-    $another_lock->release();
-}
+// Wait for at most 10 seconds and retry DB errors twice after the first attempt.
+$backend = new WP_Lock_Backend_DB( 10.0, 2 );
+$lock    = new WP_Lock( 'scheduled-import', $backend );
+```
 
-if ( $another_lock->acquire( WP_Lock::WRITE, false, 0 ) ) {
-    $lock->lock_exists( WP_Lock::READ ); // true
-    $lock->lock_exists( WP_Lock::WRITE ); // true
-    
-    $another_lock->release();
+Both constructor values must be non-negative.
+
+### Expiration
+
+`$expiration` is the lifetime, in seconds, of a lock after it has been acquired. It is not an acquisition timeout.
+
+- The default is 30 seconds.
+- `0` means no TTL; the lock remains until explicitly released or later identified as a database ghost.
+- The value must be a non-negative integer.
+
+Use `try`/`finally` and release every acquired lock. Ghost cleanup is a recovery mechanism, not a substitute for deterministic release.
+
+### Checking lock existence
+
+`lock_exists()` checks for an unexpired lock at the requested level without acquiring it:
+
+```php
+if ( $lock->lock_exists( WP_Lock::WRITE ) ) {
+	// An exclusive lock currently exists.
 }
 ```
 
-## Caveats
+The default level is `WP_Lock::WRITE`. Checking READ returns `true` for either a READ or WRITE lock; checking WRITE only returns `true` for a WRITE lock.
 
-In highly concurrent setups you may get Deadlock errors from MySQL. This is normal. The library handles these gracefully and retries the query as needed.
+## Exceptions
+
+- `InvalidArgumentException` indicates an invalid resource identifier, backend, lock level, expiration, blocking timeout, or retry count.
+- `LogicException` indicates lifecycle misuse, such as acquiring the same object twice or releasing an object that does not hold a lock.
+- `RuntimeException` indicates a persistent database failure or a backend release failure. When release fails, the object remains in the held state so release can be retried.
+
+## Custom backends
+
+A custom backend must implement `iTRON\WP_Lock\WP_Lock_Backend`:
+
+```php
+interface WP_Lock_Backend {
+	public function acquire( $id, $level, $blocking, $expiration ): bool;
+	public function release( $id ): bool;
+	public function exists( $id, $level ): bool;
+}
+```
+
+The backend is supplied as the second `WP_Lock` constructor argument or through the `wp_lock_backend` filter. Returning `false` from `release()` causes `WP_Lock::release()` to throw `RuntimeException` and preserve its ownership state.
+
+## Migrating to 2.0
+
+Version 2.0 contains intentional breaking changes:
+
+- The `flock` backend and `WP_Lock_Backend_flock` class were removed. Use the bundled DB backend or provide a custom backend.
+- `WP_Lock` is non-reentrant. Repeated acquire and unmatched release calls now throw `LogicException`.
+- Resource IDs must be strings; levels must be the exact READ or WRITE constants; expiration must be a non-negative integer.
+- Blocking acquisition is bounded to 30 seconds by default and can return `false` on timeout.
+- Permanent database errors now throw `RuntimeException` after bounded retries.
+- Custom backend `acquire()`, `release()`, and `exists()` methods must declare `bool` return types. `release()` must report success instead of returning `void`.
+- The database schema is upgraded automatically and adds an index for `lock_key`.
+
+Review code that assumed indefinite blocking, nested acquisition, implicit argument coercion, or a void custom-backend `release()` before upgrading. See [CHANGELOG.md](CHANGELOG.md) for the release summary.
+
+## Origin
+
+This project originated as a fork of [soulseekah/wp-lock](https://github.com/soulseekah/wp-lock) by Gennady Kovshenin and is now maintained as a standalone package.
