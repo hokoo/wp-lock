@@ -4,6 +4,8 @@
 
 WP Lock provides shared READ locks and exclusive WRITE locks for WordPress. Version 2 uses a WordPress database table as its only bundled backend.
 
+See the [project roadmap](ROADMAP.md) for planned versions, [known issues](docs/issues/README.md) for findings and evidence, and [epics and tasks](docs/planning/README.md) for execution details.
+
 ## Requirements
 
 - PHP 7.4 or newer
