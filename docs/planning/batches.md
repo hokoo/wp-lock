@@ -2,7 +2,7 @@
 
 The root [ROADMAP](../../ROADMAP.md) owns release scope. Contracts are in [E1](E1-contract-and-tests.md), [E3](E3-acquisition.md), [E4](E4-leases-and-recovery.md), and [E5](E5-migration-and-release.md); [common DoD](README.md#common-task-contracts) applies. B0 is **in progress**; B1–B5 are **not started**. All batches target one 3.0.0 candidate. The current execution authorization covers B0 only.
 
-A roadmap batch is an observable dependency boundary, not a single worker assignment. Use a fresh bounded worker for each implementation, repair, test, or substantial document task. One writer is active at a time; a later writer starts only after the prior boundary is stable and accepted. Long, database-backed, coverage, and broad verification runs serially through `test_monitor`. Independent read-only analysis may overlap.
+A roadmap batch is an observable dependency boundary, not a single worker assignment. Global Gitflow targets `release/3.0`: use one `batch/bN` branch and one MR/PR per batch, starting each next branch from the updated `release/3.0`. Freeze, review, and test each batch branch before merge. Tasks remain `review` until their batch PR merges; a premerge QA readiness review does not close the final epic gate. Use a fresh bounded worker for each implementation, repair, test, or substantial document task. One writer is active at a time; a later writer starts only after the prior boundary is stable and accepted. Long, database-backed, coverage, and broad verification runs serially through `test_monitor`. Independent read-only analysis may overlap.
 
 | Batch | Tasks | Observable output | Gate |
 | --- | --- | --- | --- |
@@ -33,6 +33,8 @@ A `pass_with_notes` gate permits only nonblocking notes after every required cri
 **D2 decision checkpoint — 2026-09-29:** OWNER accepted the [ADR](adr/001-contract.md)'s D2 architecture: permanent unique resource row, retained auto-increment owner ID, independent primary connection, captured namespace, and per-attempt token for uncertain INSERT/COMMIT recovery. Feasibility and required tests remain unverified. The final D1 matrix and D3 details/D5/D6 remain pending; E1-01 and E1-02 stay in review, E1-QA waits, and B1 remains unauthorized. No runtime check, QA pass, or merge waiver follows from this decision.
 
 **D3 decision checkpoint — 2026-09-29:** OWNER accepted the [ADR](adr/001-contract.md)'s TTL=0/manual-recovery policy and finite-TTL consumer guidance. The exact recovery procedure and rehearsal remain pending, as do the final D1 matrix and D5/D6 decisions. E1-01 and E1-02 remain in review, E1-QA waits, and B1 is unauthorized. This documentation update adds no runtime verification or release claim.
+
+**Remaining decision and Gitflow checkpoint — 2026-09-29:** OWNER accepted the ADR's proposed D3 manual recovery design, D5 stop/drain/verify/switch and rollback design, and D6 diagnostic/API/timeout design. These are design decisions only; no D2 feasibility, D3 recovery rehearsal, D5 migration/rollback rehearsal, D6 regression, or target-protocol verification is claimed. B0's empirical D1 target validation matrix and OWNER acceptance remain open, as does E1-QA. The six existing local commits are intended for the single B0 PR from `batch/b0` to `release/3.0`; no PR or merge is claimed by this checkpoint. E1-01 and E1-02 stay in `review` through the B0 merge, and E1-QA stays `waiting_dependency` until a frozen, reviewed and tested B0 revision is ready. The independent premerge review records readiness; the final epic gate verifies merge delivery and fails if it is missing. B1 remains unauthorized.
 
 ## B1. Ownership foundations
 
@@ -72,7 +74,7 @@ A `pass_with_notes` gate permits only nonblocking notes after every required cri
 ## Transition rules
 
 1. Pull only tasks whose DoR and dependencies are met. Scheduling a batch does not approve a pending ADR choice.
-2. Honor commit/merge DoD for future execution. A local diff is provisional and cannot close a task or epic.
+2. Honor the batch branch/PR and merge DoD. A local diff or premerge QA readiness finding is provisional and cannot close a task or epic; final epic QA verifies delivery after merge.
 3. At each boundary record task status, artifacts, exact checks, evidence, newly ready work, risks, and next batch.
 4. Required failures return to the owning task for bounded repair. Re-freeze and re-review the affected revision.
 5. Change release scope in ROADMAP first. Renewal remains only deferred ISSUE-012 until separately authorized.

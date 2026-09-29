@@ -21,7 +21,7 @@
 - **DoD:** DoD-D; ADR compares viable alternatives, records decisions and tests/feasibility evidence, and is reviewed and merged before dependent implementation.
 - **AC:** require real READ/WRITE acquisition on supported RR/RC in the target protocol; explain empty-resource and conflict serialization, stale RR snapshots, caller rollback/deadlock/reconnect, known and uncertain commits, release/cleanup, namespace changes, time/error/recovery results, safe switching and rollback. Retain existing `insert_id` identity, wrapper held lifecycle, and tests where compatible; justify any new token, connection, table, or abstraction by chosen protocol or uncertainty. D3 uses conservative TTL=0 and verified manual recovery without distributed PID/CID liveness. D6 first tests bounded/nullable diagnostic `original_key` against strict mode, Unicode, and shared prefixes while existing full-ID key derivation remains; require TEXT/DDL only on demonstrated need. No blanket RC refusal or speculative renewal machinery.
 - **Dependencies:** none known; OWNER acceptance is part of delivery.
-- **Notes/Risks:** a pending material decision keeps this task in review and blocks dependent design work; D4 remains deferred ISSUE-012.
+- **Notes/Risks:** D1's target validation matrix remains an empirical B0/OWNER gate; D2 feasibility and later D3/D5/D6 verification are open. D4 remains deferred ISSUE-012.
 
 ## E1-02. Focused trustworthy diagnostic baseline
 
@@ -35,7 +35,7 @@
 - **Dependencies:** none known; coordinate shared helper ownership in one writer sequence.
 - **Notes/Risks:** saved audit probe mutates its dedicated table and injects faults; only run it on a disposable database. A sampled RR pass does not prove all schedules.
 
-**Evidence — 2026-09-29:** the [B0 diagnostic record](evidence/E1-02.md) contains passing MySQL/MariaDB RR/RC baseline observations, controls, retained JSONL, and a successful existing-suite run (51 tests / 140 assertions / zero skips) on an identical temporary source copy with compatible dependencies. OWNER accepted the [ADR](adr/001-contract.md)'s D1 research approach and D2 architecture; the final support matrix and D3 details/D5/D6 remain pending. D2 feasibility and required tests are unverified. The common review/merge delivery boundary remains open, and E1-QA is not yet runnable.
+**Evidence — 2026-09-29:** the [B0 diagnostic record](evidence/E1-02.md) contains passing MySQL/MariaDB RR/RC baseline observations, controls, retained JSONL, and a successful existing-suite run (51 tests / 140 assertions / zero skips) on an identical temporary source copy with compatible dependencies. OWNER accepted the [ADR](adr/001-contract.md)'s D1 research approach and D2/D3/D5/D6 designs. B0's empirical D1 target validation matrix and OWNER acceptance, the final release support matrix, D2 feasibility, and later recovery/migration/API verification remain open. E1-01 and E1-02 remain in `review` until the B0 PR merges; E1-QA remains `waiting_dependency`.
 
 ## E1-QA. Independent contract and evidence review
 
@@ -43,8 +43,8 @@
 - **Goal:** accept a usable contract and diagnostic baseline.
 - **Scope:** ADR, tests, source mapping, environment and isolation evidence, exact revision, and evidence limits.
 - **Out of Scope:** treating current backend as fixed or running production migration.
-- **DoR:** E1-01 and E1-02 are delivered; reviewer did not implement them.
-- **DoD:** DoD-Q; deliver `docs/planning/qa/E1.md` through review/merge.
+- **DoR:** E1-01 and E1-02 have stable, reviewed and tested premerge revisions, including the accepted B0 D1 target validation matrix; reviewer did not implement them.
+- **DoD:** DoD-Q; include premerge readiness evidence in `docs/planning/qa/E1.md` in the B0 PR, then verify the required delivery after merge before the final epic gate closes. Missing merge remains a failed final delivery criterion.
 - **AC:** decisions needed by E3–E5 are explicit; findings and controls are independently checked; legacy failures are labeled; no universal RR safety or target RC support is inferred from blanket refusal.
 - **Dependencies:** E1-01, E1-02.
 - **Notes/Risks:** missing mandatory decision or runtime evidence fails this gate.

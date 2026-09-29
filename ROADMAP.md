@@ -11,7 +11,7 @@ This is the single roadmap for release scope. The [issue register](docs/issues/R
 | 2.0.0 | Current baseline | Existing API and backend examined by the audit | History in [CHANGELOG](CHANGELOG.md) |
 | **3.0.0** | **planned — next release** | Correct ownership, lifetime, recovery, migration, and verification of identified issues | **E1, E3, E4, E5**; 15 tasks including four independent QA gates |
 
-Release dates are not assigned. B0 contract and diagnostic work is in review; backend implementation has not started. Plugin metadata and the existing changelog continue to describe 2.0.0 until release preparation. Renewal (ISSUE-012) is deferred without a release target.
+Release dates are not assigned. B0 contract and diagnostic work is in review; its D1 target validation matrix and E1-QA gate remain open, and backend implementation has not started. The current authorization covers B0 only. Plugin metadata and the existing changelog continue to describe 2.0.0 until release preparation. Renewal (ISSUE-012) is deferred without a release target.
 
 <a id="v300"></a>
 ## 3.0.0 — Resolve identified issues
@@ -50,10 +50,10 @@ flowchart LR
     B4 --> B5["B5: candidate and E5 QA"]
 ```
 
-[Batches](docs/planning/batches.md) define dependency gates and serial work in the shared checkout. An issue may span epics; closure requires every linked criterion, not the first local fix.
+[Batches](docs/planning/batches.md) define dependency gates and serial work in the shared checkout. Global Gitflow targets `release/3.0`, with one branch and one MR/PR per batch, created from the updated release branch. An issue may span epics; closure requires every linked criterion, not the first local fix.
 
 ## Decisions and estimates
 
-The [decision register](docs/planning/README.md#decisions) tracks D1–D6. OWNER accepted D1's newest-stable-first compatibility research approach and D2's resource-row, independent-connection, attempt-token architecture; D2 feasibility and required tests remain open. D1's final support matrix remains pending evidence. D3's conservative TTL=0/manual recovery direction is agreed, while its details and D5/D6 remain for the E1-01 ADR. D4 only records deferred ISSUE-012 and has no task or version commitment. Remaining decisions and gates precede dependent implementation.
+The [decision register](docs/planning/README.md#decisions) tracks D1–D6. OWNER accepted D1's newest-stable-first compatibility research approach and the ADR's D2 architecture, D3 recovery design, D5 migration/rollback design, and D6 diagnostic/API/timeout design. B0's empirical D1 target validation matrix and OWNER acceptance remain open; final release support, D2 feasibility, D3 and D5 rehearsals, and D6 regressions require later evidence. D4 only records deferred ISSUE-012 and has no task or version commitment. Design acceptance does not authorize B1 or establish a verified release contract.
 
 The audit's earlier 8–15 engineering working days is provisional. Re-estimate after the ADR, including QA, review/merge, and migration. No calendar delivery date is promised.
