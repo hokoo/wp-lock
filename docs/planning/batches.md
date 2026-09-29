@@ -32,6 +32,8 @@ A `pass_with_notes` gate permits only nonblocking notes after every required cri
 
 **D2 decision checkpoint — 2026-09-29:** OWNER accepted the [ADR](adr/001-contract.md)'s D2 architecture: permanent unique resource row, retained auto-increment owner ID, independent primary connection, captured namespace, and per-attempt token for uncertain INSERT/COMMIT recovery. Feasibility and required tests remain unverified. The final D1 matrix and D3 details/D5/D6 remain pending; E1-01 and E1-02 stay in review, E1-QA waits, and B1 remains unauthorized. No runtime check, QA pass, or merge waiver follows from this decision.
 
+**D3 decision checkpoint — 2026-09-29:** OWNER accepted the [ADR](adr/001-contract.md)'s TTL=0/manual-recovery policy and finite-TTL consumer guidance. The exact recovery procedure and rehearsal remain pending, as do the final D1 matrix and D5/D6 decisions. E1-01 and E1-02 remain in review, E1-QA waits, and B1 is unauthorized. This documentation update adds no runtime verification or release claim.
+
 ## B1. Ownership foundations
 
 - **Input:** E1-QA and accepted ADR.
