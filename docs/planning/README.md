@@ -17,18 +17,18 @@ The former E3-01 architecture task is folded into the single E1-01 ADR. [Batches
 
 ## Decisions
 
-E1-01 prepares **one** [ADR](adr/001-contract.md) covering supported contracts, ownership protocol, time, errors, recovery, and migration. OWNER accepted D1's evidence-led compatibility research approach on 2026-09-29, not a final support matrix. None of the candidate algorithms, schemas, connection adapters, tokens, or error representations is approved in advance. D3's conservative TTL=0/manual recovery direction is agreed; the detailed protocol and procedure still need the ADR.
+E1-01 prepares **one** [ADR](adr/001-contract.md) covering supported contracts, ownership protocol, time, errors, recovery, and migration. OWNER accepted D1's evidence-led compatibility research approach and D2's proposed architecture on 2026-09-29; the final support matrix and D2 implementation feasibility remain unverified. D3's conservative TTL=0/manual recovery direction is agreed; its detailed protocol and procedure remain under discussion. D5 switching details and D6's public error contract remain pending.
 
 | ID | State | Decision and required evidence |
 | --- | --- | --- |
 | D1 | research approach accepted; final matrix pending | Start with the newest released stable PHP, WordPress, and MySQL, retain MariaDB, compare maintained LTS where relevant, and expand backward by evidence. Keep PHP >=7.4 as the existing constraint. B0 selects candidates and reusable evidence; E3–E5 verify final-protocol support under RR and RC before release claims. |
-| D2 | pending | Serialization, owner identity, namespace, caller-transaction isolation, reconnect, deadlock, and uncertain-commit protocol. Compare viable alternatives using the audit and focused tests; preserve compatible existing mechanisms where they suffice. |
+| D2 | architecture accepted; feasibility pending | Serialize ownership changes on a permanent unique resource row using an independent primary connection, retain the auto-increment owner ID, capture the namespace, and use a per-attempt token for uncertain INSERT/COMMIT recovery. Directed MySQL/MariaDB and fault tests remain required. |
 | D3 | direction agreed; details pending | Handle TTL=0 conservatively with verified manual recovery after stopping participants. Do not infer death from unreliable PID/CID or build a distributed liveness system. Define exact evidence and steps in the ADR. |
 | D4 | deferred | ISSUE-012 renewal has no release target or active task. Revisit only on a confirmed consumer requirement and separate authorization. |
 | D5 | release scope agreed; switching details pending | One 3.0.0 release. Define installation, safe incompatible-protocol switch, TTL=0 resolution, failure handling, and tested rollback in the ADR. |
 | D6 | pending | Preserve the full string resource ID for existing key derivation. First evaluate a bounded/nullable diagnostic `original_key` with strict-mode, Unicode, and shared-prefix tests. Require TEXT or DDL only if full diagnostic retention proves necessary. Define contention, DB error, absence, and lost/uncertain ownership results; reject NaN/INF without changing valid timeout behavior. |
 
-Preserve existing `insert_id` owner identity, wrapper held lifecycle, and tests where compatible. A new token, connection, table, or abstraction requires a demonstrated need from the chosen protocol or uncertain-commit handling. No pre-ADR implementation is authorized by this plan.
+Preserve existing `insert_id` owner identity, wrapper held lifecycle, and tests where compatible. D2 accepts the resource row, independent connection, and attempt token in principle; authorized E3 work must verify their feasibility before downstream acceptance, while the remaining decisions and E1-QA gate precede implementation. This decision does not authorize B1 execution.
 
 ## Common task contracts
 

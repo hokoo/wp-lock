@@ -35,7 +35,7 @@
 - **Dependencies:** none known; coordinate shared helper ownership in one writer sequence.
 - **Notes/Risks:** saved audit probe mutates its dedicated table and injects faults; only run it on a disposable database. A sampled RR pass does not prove all schedules.
 
-**Evidence — 2026-09-29:** the [B0 diagnostic record](evidence/E1-02.md) contains passing MySQL/MariaDB RR/RC baseline observations, controls, retained JSONL, and a successful existing-suite run (51 tests / 140 assertions / zero skips) on an identical temporary source copy with compatible dependencies. OWNER accepted the [ADR](adr/001-contract.md)'s D1 research approach; the final support matrix and D2/D3 details/D5/D6 remain pending. The common review/merge delivery boundary remains open, and E1-QA is not yet runnable.
+**Evidence — 2026-09-29:** the [B0 diagnostic record](evidence/E1-02.md) contains passing MySQL/MariaDB RR/RC baseline observations, controls, retained JSONL, and a successful existing-suite run (51 tests / 140 assertions / zero skips) on an identical temporary source copy with compatible dependencies. OWNER accepted the [ADR](adr/001-contract.md)'s D1 research approach and D2 architecture; the final support matrix and D3 details/D5/D6 remain pending. D2 feasibility and required tests are unverified. The common review/merge delivery boundary remains open, and E1-QA is not yet runnable.
 
 ## E1-QA. Independent contract and evidence review
 

@@ -30,6 +30,8 @@ A `pass_with_notes` gate permits only nonblocking notes after every required cri
 
 **D1 decision checkpoint — 2026-09-29:** OWNER accepted the evidence-led compatibility research approach in the [ADR](adr/001-contract.md), prioritizing the newest released stable PHP, WordPress, and MySQL, retaining MariaDB, and expanding backward by evidence. B0 determines candidate configurations and reusable matrix evidence; E3/E4/E5 verify the new protocol and migration before support claims. The final D1 matrix and D2/D3 details/D5/D6 remain pending; E1-01 and E1-02 remain in review, E1-QA waits, and B1 is not authorized. This document update adds no runtime verification or delivery-boundary exception.
 
+**D2 decision checkpoint — 2026-09-29:** OWNER accepted the [ADR](adr/001-contract.md)'s D2 architecture: permanent unique resource row, retained auto-increment owner ID, independent primary connection, captured namespace, and per-attempt token for uncertain INSERT/COMMIT recovery. Feasibility and required tests remain unverified. The final D1 matrix and D3 details/D5/D6 remain pending; E1-01 and E1-02 stay in review, E1-QA waits, and B1 remains unauthorized. No runtime check, QA pass, or merge waiver follows from this decision.
+
 ## B1. Ownership foundations
 
 - **Input:** E1-QA and accepted ADR.
