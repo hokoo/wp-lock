@@ -13,7 +13,7 @@
 
 ## E1-01. One contract and protocol ADR
 
-- **Status:** todo. **Owner:** DO + OWNER. **Priority:** P0. **Batch:** B0.
+- **Status:** review. **Owner:** DO + OWNER. **Priority:** P0. **Batch:** B0.
 - **Goal:** settle the 3.0.0 contract and the minimum protocol needed to satisfy it.
 - **Scope:** `docs/planning/adr/001-contract.md`; D1/D2/D3/D5/D6; supported matrix, READ/WRITE, resource/owner identity, namespace, caller transactions, serialization, commit uncertainty, TTL/deadlines, DB errors, cleanup, lost ownership, migration, and compatibility.
 - **Out of Scope:** implementing a candidate design, renewal, automatic external-write fencing, or selecting an architecture before evidence and OWNER acceptance.
@@ -25,7 +25,7 @@
 
 ## E1-02. Focused trustworthy diagnostic baseline
 
-- **Status:** todo. **Owner:** TEST. **Priority:** P0. **Batch:** B0.
+- **Status:** in_progress. **Owner:** TEST. **Priority:** P0. **Batch:** B0.
 - **Goal:** expose the current high-risk failure modes with reusable, bounded observations.
 - **Scope:** existing test helpers and saved audit probe; independent connections/processes, controlled interleavings, READ/READ control, outer rollback, one fault/TTL control, and environment/SQL-mode evidence.
 - **Out of Scope:** implementing every E3/E4 regression in advance, backend fixes, or changing audit artifacts.

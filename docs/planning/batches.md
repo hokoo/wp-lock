@@ -1,6 +1,6 @@
 # Execution batches
 
-The root [ROADMAP](../../ROADMAP.md) owns release scope. Contracts are in [E1](E1-contract-and-tests.md), [E3](E3-acquisition.md), [E4](E4-leases-and-recovery.md), and [E5](E5-migration-and-release.md); [common DoD](README.md#common-task-contracts) applies. All batches are **not started** and target one 3.0.0 candidate.
+The root [ROADMAP](../../ROADMAP.md) owns release scope. Contracts are in [E1](E1-contract-and-tests.md), [E3](E3-acquisition.md), [E4](E4-leases-and-recovery.md), and [E5](E5-migration-and-release.md); [common DoD](README.md#common-task-contracts) applies. B0 is **in progress**; B1–B5 are **not started**. All batches target one 3.0.0 candidate. The current execution authorization covers B0 only.
 
 A roadmap batch is an observable dependency boundary, not a single worker assignment. Use a fresh bounded worker for each implementation, repair, test, or substantial document task. One writer is active at a time; a later writer starts only after the prior boundary is stable and accepted. Long, database-backed, coverage, and broad verification runs serially through `test_monitor`. Independent read-only analysis may overlap.
 
@@ -21,6 +21,8 @@ A `pass_with_notes` gate permits only nonblocking notes after every required cri
 - **Order:** E1-01 drafts the single ADR and obtains OWNER decisions; E1-02 creates focused concurrent/fault baseline checks using existing helpers. These can be scheduled sequentially while decisions await review. E1-QA independently checks the accepted contract and evidence.
 - **Verification:** real independent process/connection acquisition under RR/RC with ownership held through observation, READ/READ control, and a small set of directed fault controls. Label expected legacy failures as RED; use the audit probe only on a disposable database. Missing required process control or database is incomplete evidence.
 - **Gate:** D1/D2/D3/D5/D6 decisions needed by implementation are recorded; D4 is deferred. E1-QA accepts evidence quality, not current backend safety.
+
+**Execution checkpoint — 2026-09-29:** the complete planning/audit baseline was committed as `534ff82`. E1-01's [ADR draft](adr/001-contract.md) is in review, with OWNER acceptance and review/merge pending. Its local links were checked; root removed two Markdown trailing-space line breaks caught by the staged diff check (minimal integration correction). No runtime or target-protocol verification is claimed. E1-02 is starting independently. A fresh worker owns each document/test assignment; other root edits are limited to delivery bookkeeping. B1 remains outside the user's authorization.
 
 ## B1. Ownership foundations
 

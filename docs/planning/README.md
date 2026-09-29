@@ -2,7 +2,7 @@
 
 The root [ROADMAP.md](../../ROADMAP.md) owns versions and release scope. This directory contains execution contracts, not another release schedule. The [issue register](../issues/README.md) records findings; the [audit](../review-2026-09-29/assessment.md) provides research evidence.
 
-There are **four mandatory epics and 15 tasks** for one planned 3.0.0 release, including four independent QA tasks. Implementation has not started. Renewal is deferred as ISSUE-012 without a version or task breakdown.
+There are **four mandatory epics and 15 tasks** for one planned 3.0.0 release, including four independent QA tasks. B0 contract and diagnostic work is in progress; backend implementation has not started. Renewal is deferred as ISSUE-012 without a version or task breakdown.
 
 ## Navigation
 
@@ -32,7 +32,7 @@ Preserve existing `insert_id` owner identity, wrapper held lifecycle, and tests 
 
 ## Common task contracts
 
-**Statuses:** `todo` means DoR is satisfied; `needs_design` means a material decision is missing; `waiting_dependency` means scope is known but a named upstream artifact or gate is pending; `review` means work exists but verification/delivery remains; `completed` means AC/DoD and delivery are met. No roadmap implementation task is in progress or completed.
+**Statuses:** `todo` means DoR is satisfied; `needs_design` means a material decision is missing; `waiting_dependency` means scope is known but a named upstream artifact or gate is pending; `review` means work exists but verification/delivery remains; `completed` means AC/DoD and delivery are met. Actual task states are recorded in each epic.
 
 **Roles:** DO/root owns delivery, sequencing, decisions, and integration; DEV implements backend; TEST implements tests/CI; QA independently reviews each epic; OWNER accepts material decisions. A fresh bounded `worker` handles each implementation or substantial document assignment. `test_monitor` runs long, database-backed, coverage, and broad checks after the writer stops. Human assignees are not selected.
 
