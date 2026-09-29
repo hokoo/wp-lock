@@ -11,7 +11,7 @@ This is the single roadmap for release scope. The [issue register](docs/issues/R
 | 2.0.0 | Current baseline | Existing API and backend examined by the audit | History in [CHANGELOG](CHANGELOG.md) |
 | **3.0.0** | **planned — next release** | Correct ownership, lifetime, recovery, migration, and verification of identified issues | **E1, E3, E4, E5**; 15 tasks including four independent QA gates |
 
-Release dates are not assigned. Implementation has not started. Plugin metadata and the existing changelog continue to describe 2.0.0 until release preparation. Renewal (ISSUE-012) is deferred without a release target.
+Release dates are not assigned. B0 contract and diagnostic work is in review; backend implementation has not started. Plugin metadata and the existing changelog continue to describe 2.0.0 until release preparation. Renewal (ISSUE-012) is deferred without a release target.
 
 <a id="v300"></a>
 ## 3.0.0 — Resolve identified issues

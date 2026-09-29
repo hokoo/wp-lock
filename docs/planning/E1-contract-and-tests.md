@@ -25,7 +25,7 @@
 
 ## E1-02. Focused trustworthy diagnostic baseline
 
-- **Status:** in_progress. **Owner:** TEST. **Priority:** P0. **Batch:** B0.
+- **Status:** review. **Owner:** TEST. **Priority:** P0. **Batch:** B0.
 - **Goal:** expose the current high-risk failure modes with reusable, bounded observations.
 - **Scope:** existing test helpers and saved audit probe; independent connections/processes, controlled interleavings, READ/READ control, outer rollback, one fault/TTL control, and environment/SQL-mode evidence.
 - **Out of Scope:** implementing every E3/E4 regression in advance, backend fixes, or changing audit artifacts.
@@ -34,6 +34,8 @@
 - **AC:** hold ownership until both results are observed; exercise supported RR/RC with successful acquisition controls; bound and reap children; missing PCNTL/POSIX fails required checks; distinguish source inspection, fault injection, and real DB reproduction. Each later fixing task adds its own directed regression.
 - **Dependencies:** none known; coordinate shared helper ownership in one writer sequence.
 - **Notes/Risks:** saved audit probe mutates its dedicated table and injects faults; only run it on a disposable database. A sampled RR pass does not prove all schedules.
+
+**Evidence — 2026-09-29:** the [B0 diagnostic record](evidence/E1-02.md) contains passing MySQL/MariaDB RR/RC baseline observations, controls, retained JSONL, and a successful existing-suite run (51 tests / 140 assertions / zero skips) on an identical temporary source copy with compatible dependencies. The common review/merge delivery boundary remains open. The [ADR](adr/001-contract.md) remains proposed pending OWNER acceptance; E1-QA is not yet runnable.
 
 ## E1-QA. Independent contract and evidence review
 

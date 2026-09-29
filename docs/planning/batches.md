@@ -24,6 +24,10 @@ A `pass_with_notes` gate permits only nonblocking notes after every required cri
 
 **Execution checkpoint — 2026-09-29:** the complete planning/audit baseline was committed as `534ff82`. E1-01's [ADR draft](adr/001-contract.md) is in review, with OWNER acceptance and review/merge pending. Its local links were checked; root removed two Markdown trailing-space line breaks caught by the staged diff check (minimal integration correction). No runtime or target-protocol verification is claimed. E1-02 is starting independently. A fresh worker owns each document/test assignment; other root edits are limited to delivery bookkeeping. B1 remains outside the user's authorization.
 
+**Diagnostic checkpoint — 2026-09-29:** E1-02 is in review. Fresh workers implemented the diagnostic and bounded repairs; serial `test_monitor` runs now reproduce expected legacy RED findings and pass GREEN controls on MySQL 8.0.46 and MariaDB 10.11.10 at RR/RC. [Evidence](evidence/E1-02.md) preserves the successful outputs and earlier failed setup/diagnostic attempts. A fresh documentation worker clarified the proposed ADR's unresolved-acquire, timeout, and diagnostic-text rules. OWNER acceptance, existing-suite verification, and review/merge delivery remain open; E1-QA waits on those requirements. B1 is neither authorized nor started.
+
+**Runtime checkpoint — 2026-09-29:** the existing suite subsequently passed on an identical temporary source copy with compatible dependencies: 51 tests, 140 assertions, zero skips. No product source changed; diagnostic and suite containers were removed. E1-01 and E1-02 remain in review for OWNER acceptance and the common review/merge boundary; E1-QA remains waiting_dependency. Root persisted verification results as delivery bookkeeping. Stop at B0 pending those decisions; do not start B1.
+
 ## B1. Ownership foundations
 
 - **Input:** E1-QA and accepted ADR.
