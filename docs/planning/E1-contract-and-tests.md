@@ -8,7 +8,7 @@
 **Out of Scope:** backend fixes, full duplication of later directed regressions, and ISSUE-012 renewal.
 **Success Criteria:** ADR decisions are accepted; focused RED findings and GREEN controls are reproducible; independent E1-QA accepts the evidence and its limits.
 **Dependencies:** [audit](../review-2026-09-29/assessment.md), current source and tests; no unfinished upstream epic.
-**Risks/Open Questions:** supported consumer environments and drop-ins need confirmation; an entry barrier alone does not control SQL scheduling.
+**Risks/Open Questions:** this public library's consumer environments and drop-ins are unknown; the final support matrix remains pending evidence. An entry barrier alone does not control SQL scheduling.
 **Tasking Guidance:** use [common contracts and `$decompose-work`](README.md#common-task-contracts).
 
 ## E1-01. One contract and protocol ADR
@@ -35,7 +35,7 @@
 - **Dependencies:** none known; coordinate shared helper ownership in one writer sequence.
 - **Notes/Risks:** saved audit probe mutates its dedicated table and injects faults; only run it on a disposable database. A sampled RR pass does not prove all schedules.
 
-**Evidence — 2026-09-29:** the [B0 diagnostic record](evidence/E1-02.md) contains passing MySQL/MariaDB RR/RC baseline observations, controls, retained JSONL, and a successful existing-suite run (51 tests / 140 assertions / zero skips) on an identical temporary source copy with compatible dependencies. The common review/merge delivery boundary remains open. The [ADR](adr/001-contract.md) remains proposed pending OWNER acceptance; E1-QA is not yet runnable.
+**Evidence — 2026-09-29:** the [B0 diagnostic record](evidence/E1-02.md) contains passing MySQL/MariaDB RR/RC baseline observations, controls, retained JSONL, and a successful existing-suite run (51 tests / 140 assertions / zero skips) on an identical temporary source copy with compatible dependencies. OWNER accepted the [ADR](adr/001-contract.md)'s D1 research approach; the final support matrix and D2/D3 details/D5/D6 remain pending. The common review/merge delivery boundary remains open, and E1-QA is not yet runnable.
 
 ## E1-QA. Independent contract and evidence review
 

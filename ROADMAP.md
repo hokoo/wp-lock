@@ -54,6 +54,6 @@ flowchart LR
 
 ## Decisions and estimates
 
-The [decision register](docs/planning/README.md#decisions) tracks D1–D6. D3's conservative TTL=0/manual recovery direction is agreed; its implementation detail and D1/D2/D5/D6 remain for one E1-01 ADR. D4 only records deferred ISSUE-012 and has no task or version commitment. The ADR must precede architecture, schema, token, and connection choices.
+The [decision register](docs/planning/README.md#decisions) tracks D1–D6. OWNER accepted D1's newest-stable-first compatibility research approach; its final support matrix remains pending evidence. D3's conservative TTL=0/manual recovery direction is agreed, while its details and D2/D5/D6 remain for the E1-01 ADR. D4 only records deferred ISSUE-012 and has no task or version commitment. The ADR must precede architecture, schema, token, and connection choices.
 
 The audit's earlier 8–15 engineering working days is provisional. Re-estimate after the ADR, including QA, review/merge, and migration. No calendar delivery date is promised.

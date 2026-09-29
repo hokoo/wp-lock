@@ -17,11 +17,11 @@ The former E3-01 architecture task is folded into the single E1-01 ADR. [Batches
 
 ## Decisions
 
-E1-01 prepares **one** ADR, `docs/planning/adr/001-contract.md`, covering supported contracts, ownership protocol, time, errors, recovery, and migration. None of the candidate algorithms, schemas, connection adapters, tokens, or error representations is approved in advance. A decision remains pending until the ADR records it with OWNER acceptance. D3's conservative TTL=0/manual recovery direction is agreed; the detailed protocol and procedure still need the ADR.
+E1-01 prepares **one** [ADR](adr/001-contract.md) covering supported contracts, ownership protocol, time, errors, recovery, and migration. OWNER accepted D1's evidence-led compatibility research approach on 2026-09-29, not a final support matrix. None of the candidate algorithms, schemas, connection adapters, tokens, or error representations is approved in advance. D3's conservative TTL=0/manual recovery direction is agreed; the detailed protocol and procedure still need the ADR.
 
 | ID | State | Decision and required evidence |
 | --- | --- | --- |
-| D1 | pending | Supported PHP/WP/MySQL/MariaDB and RR/RC matrix; retain shared READ/exclusive WRITE and PHP >=7.4. Both supported RR and RC must allow successful acquisition under the final protocol. |
+| D1 | research approach accepted; final matrix pending | Start with the newest released stable PHP, WordPress, and MySQL, retain MariaDB, compare maintained LTS where relevant, and expand backward by evidence. Keep PHP >=7.4 as the existing constraint. B0 selects candidates and reusable evidence; E3–E5 verify final-protocol support under RR and RC before release claims. |
 | D2 | pending | Serialization, owner identity, namespace, caller-transaction isolation, reconnect, deadlock, and uncertain-commit protocol. Compare viable alternatives using the audit and focused tests; preserve compatible existing mechanisms where they suffice. |
 | D3 | direction agreed; details pending | Handle TTL=0 conservatively with verified manual recovery after stopping participants. Do not infer death from unreliable PID/CID or build a distributed liveness system. Define exact evidence and steps in the ADR. |
 | D4 | deferred | ISSUE-012 renewal has no release target or active task. Revisit only on a confirmed consumer requirement and separate authorization. |

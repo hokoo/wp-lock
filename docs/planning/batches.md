@@ -28,6 +28,8 @@ A `pass_with_notes` gate permits only nonblocking notes after every required cri
 
 **Runtime checkpoint — 2026-09-29:** the existing suite subsequently passed on an identical temporary source copy with compatible dependencies: 51 tests, 140 assertions, zero skips. No product source changed; diagnostic and suite containers were removed. E1-01 and E1-02 remain in review for OWNER acceptance and the common review/merge boundary; E1-QA remains waiting_dependency. Root persisted verification results as delivery bookkeeping. Stop at B0 pending those decisions; do not start B1.
 
+**D1 decision checkpoint — 2026-09-29:** OWNER accepted the evidence-led compatibility research approach in the [ADR](adr/001-contract.md), prioritizing the newest released stable PHP, WordPress, and MySQL, retaining MariaDB, and expanding backward by evidence. B0 determines candidate configurations and reusable matrix evidence; E3/E4/E5 verify the new protocol and migration before support claims. The final D1 matrix and D2/D3 details/D5/D6 remain pending; E1-01 and E1-02 remain in review, E1-QA waits, and B1 is not authorized. This document update adds no runtime verification or delivery-boundary exception.
+
 ## B1. Ownership foundations
 
 - **Input:** E1-QA and accepted ADR.
