@@ -78,6 +78,18 @@ function fail_query_once( string $needle ): callable {
 	add_filter( 'query', $filter );
 	return $filter;
 }
+function zero_delete_once( string $id, bool &$injected ): callable {
+	$filter = function( $query ) use ( $id, &$filter, &$injected ) {
+		if ( false !== strpos( $query, 'DELETE FROM `e3_lock`' ) && false !== strpos( $query, md5( $id ) ) ) {
+			remove_filter( 'query', $filter );
+			$injected = true;
+			return $query . ' AND id = 0';
+		}
+		return $query;
+	};
+	add_filter( 'query', $filter );
+	return $filter;
+}
 function kill_controlled_once( string $needle, bool &$injected ): callable {
 	$filter = function( $query ) use ( $needle, &$filter, &$injected ) {
 		global $wpdb;
@@ -427,7 +439,7 @@ try {
 			$lock->release();
 			check( 0 === count_owners( $id ), 'Uncertain COMMIT cleanup failed.' );
 		} );
-		case_ok( 'committed_unconfirmed_' . $isolation, function() {
+		case_ok( 'committed_unconfirmed_zero_row_cleanup_' . $isolation, function() {
 			$id = 'post-commit-' . uniqid();
 			$lock = new WP_Lock( $id );
 			$count = 0;
@@ -445,6 +457,22 @@ try {
 			} finally { remove_filter( 'query', $filter ); }
 			check( 3 === $count, 'Post-commit time failure was not injected.' );
 			check( 1 === count_owners( $id ), 'Committed attempt was not retained for cleanup.' );
+			$injected = false;
+			$filter = zero_delete_once( $id, $injected );
+			try {
+				$lock->release();
+				throw new RuntimeException( 'Zero-row cleanup returned release success.' );
+			} catch ( WP_Lock_Ownership_Uncertain $expected ) {
+			} finally { remove_filter( 'query', $filter ); }
+			check( $injected && 1 === count_owners( $id ), 'Zero-row release cleanup was not observed.' );
+			$injected = false;
+			$filter = zero_delete_once( $id, $injected );
+			try {
+				$lock->acquire( WP_Lock::WRITE, false, 0 );
+				throw new RuntimeException( 'Zero-row cleanup allowed acquisition.' );
+			} catch ( WP_Lock_Ownership_Uncertain $expected ) {
+			} finally { remove_filter( 'query', $filter ); }
+			check( $injected && 1 === count_owners( $id ), 'Zero-row acquire cleanup was not observed.' );
 			$lock->release();
 			check( 0 === count_owners( $id ), 'Committed unconfirmed attempt was not cleaned.' );
 		} );

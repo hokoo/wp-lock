@@ -9,7 +9,7 @@
 {"case":"failed_exists_and_release_retry_REPEATABLE READ","pass":true}
 {"case":"uncertain_insert_REPEATABLE READ","pass":true}
 {"case":"uncertain_commit_REPEATABLE READ","pass":true}
-{"case":"committed_unconfirmed_REPEATABLE READ","pass":true}
+{"case":"committed_unconfirmed_zero_row_cleanup_REPEATABLE READ","pass":true}
 {"case":"namespace_capture_REPEATABLE READ","pass":true}
 {"case":"predecessor_safe_release_REPEATABLE READ","pass":true}
 {"case":"environment","isolation":"READ COMMITTED","engine":"InnoDB","server":"12.3.3-MariaDB-ubu2404","php":"7.4.33","wordpress":"6.2.13"}
@@ -23,7 +23,7 @@
 {"case":"failed_exists_and_release_retry_READ COMMITTED","pass":true}
 {"case":"uncertain_insert_READ COMMITTED","pass":true}
 {"case":"uncertain_commit_READ COMMITTED","pass":true}
-{"case":"committed_unconfirmed_READ COMMITTED","pass":true}
+{"case":"committed_unconfirmed_zero_row_cleanup_READ COMMITTED","pass":true}
 {"case":"namespace_capture_READ COMMITTED","pass":true}
 {"case":"predecessor_safe_release_READ COMMITTED","pass":true}
 {"case":"summary","pass":true,"php":"7.4.33","wordpress":"6.2.13"}

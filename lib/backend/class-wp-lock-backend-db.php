@@ -282,7 +282,9 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 			$session->begin_resource( $id );
 			$owners = $session->find_attempt( $id, $attempt['token'] );
 			if ( $owners ) {
-				$session->delete_owner( $id, (int) $owners[0]['id'], $attempt['token'] );
+				if ( 1 !== $session->delete_owner( $id, (int) $owners[0]['id'], $attempt['token'] ) ) {
+					throw new \RuntimeException( 'The unresolved lock owner could not be deleted.' );
+				}
 			}
 			$session->commit();
 			unset( $this->unresolved[ $key ] );
