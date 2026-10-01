@@ -2,7 +2,7 @@
 
 The root [ROADMAP.md](../../ROADMAP.md) owns versions and release scope. This directory contains execution contracts, not another release schedule. The [issue register](../issues/README.md) records findings; the [audit](../review-2026-09-29/assessment.md) provides research evidence.
 
-There are **four mandatory epics and 15 tasks** for one planned 3.0.0 release, including four independent QA tasks. B0, E1-QA, and B1 / E3-02 are complete; B2 / E3-03 is in local review and E3-QA is pending; B3–B5 have not started. OWNER authorized B1 and B2 execution on 2026-10-01. Renewal is deferred as ISSUE-012 without a version or task breakdown.
+There are **four mandatory epics and 15 tasks** for one planned 3.0.0 release, including four independent QA tasks. B0–B2 are complete, including [E3-QA](qa/E3.md) with `pass_with_notes`. B3 is newly unblocked but unauthorized; B3–B5 have not started. OWNER authorized B1 and B2 execution on 2026-10-01. Renewal is deferred as ISSUE-012 without a version or task breakdown.
 
 ## Navigation
 
@@ -17,18 +17,18 @@ The former E3-01 architecture task is folded into the single E1-01 ADR. [Batches
 
 ## Decisions
 
-E1-01 prepares **one** [ADR](adr/001-contract.md) covering supported contracts, ownership protocol, time, errors, recovery, and migration. OWNER accepted D1's evidence-led research approach and D2/D3/D5/D6 designs on 2026-09-29, then the [six-row D1 validation target and future CI plan](evidence/D1-matrix.md) on 2026-10-01. The final release support matrix, implementation feasibility, and required rehearsals remain open; decision acceptance is not target-protocol verification.
+E1-01 prepares **one** [ADR](adr/001-contract.md) covering supported contracts, ownership protocol, time, errors, recovery, and migration. OWNER accepted D1's evidence-led research approach and D2/D3/D5/D6 designs on 2026-09-29, then the [six-row D1 validation target and future CI plan](evidence/D1-matrix.md) on 2026-10-01. B1–B2 verified the ownership protocol; the final release support matrix and required E4/E5 rehearsals remain open.
 
 | ID | State | Decision and required evidence |
 | --- | --- | --- |
 | D1 | research and six validation targets accepted; release support pending | [Six exact configurations](evidence/D1-matrix.md) are mandatory E3/E4 validation targets and E5 candidate-gate targets at RR and RC. Future regular PR CI uses four LTS rows; the two newest tracks run periodically and at the candidate gate. Current PHP 7.4–8.3 CI and PHP >=7.4 constraint remain. WordPress 6.2 is a backward anchor, not a universal floor. E3–E5 evidence and a release decision govern final support claims. |
-| D2 | architecture accepted; B1 delivered, B2 local review | Serialize ownership changes on a permanent unique resource row using an independent primary connection, retain the auto-increment owner ID, capture the namespace, and use a per-attempt token for uncertain INSERT/COMMIT recovery. [B1 evidence](evidence/E3-02.md) records six passing RR/RC foundation rows with the accepted controlled MariaDB snapshot setting. [B2 evidence](evidence/E3-03.md) records public RR/RC acquisition/release checks and local test-head coverage above 90%; final-head CI, E3-QA, and PR/merge remain. |
+| D2 | architecture accepted; B1–B2 delivered | Serialize ownership changes on a permanent unique resource row using an independent primary connection, retain the auto-increment owner ID, capture the namespace, and use a per-attempt token for uncertain INSERT/COMMIT recovery. [B1 evidence](evidence/E3-02.md) records six passing RR/RC foundation rows with the accepted controlled MariaDB snapshot setting. [B2 evidence](evidence/E3-03.md) records public RR/RC acquisition/release checks, local coverage above 90%, and final-head CI; [E3-QA](qa/E3.md) passed with nonblocking notes after PR #9 merged. |
 | D3 | design accepted; rehearsal pending | TTL=0 has no automatic expiry; a crash may leave an owner requiring the ADR's manual recovery after stopping participants. Prefer a finite TTL longer than the bounded protected operation with generous delay margin; release explicitly. Do not infer death from unreliable PID/CID. Rehearse the accepted procedure before release. |
 | D4 | deferred | ISSUE-012 renewal has no release target or active task. Revisit only on a confirmed consumer requirement and separate authorization. |
 | D5 | design accepted; rehearsal pending | One 3.0.0 release. Use the ADR's stop, drain, verify, switch, and restart barrier in both directions; resolve TTL=0 and uncertain owners before switching. Rehearse installation, failures, and rollback before release. |
-| D6 | design accepted; regressions pending | Preserve full string resource identity. Store optional `original_key` only when representable and within its 50-character column; otherwise store `NULL` without truncation. Preserve `false` for ordinary contention/deadline and proven absence; distinguish DB errors, uncertainty, and confirmed loss with exceptions. Reject NaN/INF blocking timeouts while preserving finite zero/positive behavior. |
+| D6 | design accepted; E3 regressions delivered, final candidate pending | Preserve full string resource identity. Store optional `original_key` only when representable and within its 50-character column; otherwise store `NULL` without truncation. Preserve `false` for ordinary contention/deadline and proven absence; distinguish DB errors, uncertainty, and confirmed loss with exceptions. Reject NaN/INF blocking timeouts while preserving finite zero/positive behavior. |
 
-Preserve existing `insert_id` owner identity, wrapper held lifecycle, and tests where compatible. Authorized E3 work must verify D2 feasibility before downstream acceptance. [B0's final E1-QA gate passed](qa/E1.md#final-delivery--2026-10-01); the final release support matrix awaits E3–E5 evidence. OWNER separately authorized B1 and B2 execution on 2026-10-01.
+Preserve existing `insert_id` owner identity, wrapper held lifecycle, and tests where compatible. [B0's final E1-QA gate passed](qa/E1.md#final-delivery--2026-10-01), and [E3-QA passed with notes](qa/E3.md); the final release support matrix awaits E4–E5 evidence. OWNER separately authorized B1 and B2 execution on 2026-10-01.
 
 ## Common task contracts
 
