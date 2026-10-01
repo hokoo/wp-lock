@@ -119,8 +119,12 @@ class E3_Fault_DB extends \iTRON\WP_Lock\WP_Lock_Foundation_DB {
 	public ?string $lose_ack = null;
 	public ?string $kill_before = null;
 	public bool $reject_snapshot_setting = false;
+	public int $transaction_starts = 0;
 	public function query( $query ) {
 		global $wpdb;
+		if ( 'START TRANSACTION' === $query ) {
+			++$this->transaction_starts;
+		}
 		if ( $this->reject_snapshot_setting && 'SET SESSION innodb_snapshot_isolation = OFF' === $query ) {
 			$this->last_error = 'Injected session-setting refusal.';
 			return false;
@@ -355,6 +359,46 @@ try {
 	} );
 	foreach ( array( 'REPEATABLE READ', 'READ COMMITTED' ) as $isolation ) {
 		$wpdb = e3_connect( $isolation );
+		e3_case( 'implicit_isolation_' . $isolation, function() {
+			$session = WP_Lock_Foundations::open();
+			try {
+				$actual = str_replace( '-', ' ', strtoupper( e3_session_state( e3_session_db( $session ) )['isolation'] ) );
+				if ( in_array( $actual, array( 'REPEATABLE READ', 'READ COMMITTED' ), true ) ) {
+					$session->begin();
+					$session->rollback();
+				} else {
+					try {
+						$session->begin();
+						throw new RuntimeException( 'Unsupported default isolation started a transaction.' );
+					} catch ( RuntimeException $expected ) {
+						e3_assert( false !== strpos( $expected->getMessage(), 'isolation could not be verified' ), 'Unexpected default-isolation refusal.' );
+					}
+				}
+			} finally {
+				$session->close();
+			}
+		} );
+		e3_case( 'changed_isolation_refused_' . $isolation, function() use ( $isolation ) {
+			foreach ( array( 'READ UNCOMMITTED', 'SERIALIZABLE' ) as $changed ) {
+				$session = e3_fault_session();
+				try {
+					$session->isolation( $isolation );
+					$db = e3_session_db( $session );
+					e3_assert( false !== $db->query( 'SET SESSION TRANSACTION ISOLATION LEVEL ' . $changed ) && empty( $db->last_error ), 'Controlled isolation change failed.' );
+					$id = 'e3-refused-' . str_replace( ' ', '-', $changed );
+					$owners = e3_count( $id );
+					try {
+						$session->begin_resource( $id );
+						throw new RuntimeException( 'Changed isolation started a foundation transaction.' );
+					} catch ( RuntimeException $expected ) {
+						e3_assert( false !== strpos( $expected->getMessage(), 'isolation' ), 'Unexpected changed-isolation refusal.' );
+					}
+					e3_assert( 0 === $db->transaction_starts && $owners === e3_count( $id ), 'Rejected isolation started a transaction or wrote an owner.' );
+				} finally {
+					$session->close();
+				}
+			}
+		} );
 		$caller_state = e3_session_state( $wpdb );
 		$controlled = WP_Lock_Foundations::open();
 		$controlled->isolation( $isolation );

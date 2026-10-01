@@ -296,20 +296,32 @@ final class WP_Lock_Foundations {
 			throw new \InvalidArgumentException( 'Unsupported transaction isolation.' );
 		}
 		$this->checked( 'SET SESSION TRANSACTION ISOLATION LEVEL ' . $level );
-		$actual = $this->db->get_var( "SHOW VARIABLES LIKE 'transaction_isolation'", 1 );
-		if ( ! $actual ) {
-			$actual = $this->db->get_var( "SHOW VARIABLES LIKE 'tx_isolation'", 1 );
-		}
-		$this->assert_connection();
-		if ( $level !== str_replace( '-', ' ', strtoupper( (string) $actual ) ) ) {
+		if ( $level !== $this->verified_isolation() ) {
 			throw new \RuntimeException( 'Foundation isolation could not be verified.' );
 		}
+	}
+
+	private function verified_isolation(): string {
+		$actual = $this->db->get_var( "SHOW SESSION VARIABLES LIKE 'transaction_isolation'", 1 );
+		if ( ! empty( $this->db->last_error ) ) {
+			throw new \RuntimeException( 'Foundation isolation could not be verified.' );
+		}
+		if ( null === $actual ) {
+			$actual = $this->db->get_var( "SHOW SESSION VARIABLES LIKE 'tx_isolation'", 1 );
+		}
+		$actual = str_replace( '-', ' ', strtoupper( (string) $actual ) );
+		if ( ! empty( $this->db->last_error ) || ! in_array( $actual, array( 'REPEATABLE READ', 'READ COMMITTED' ), true ) ) {
+			throw new \RuntimeException( 'Foundation isolation could not be verified.' );
+		}
+		$this->assert_connection();
+		return $actual;
 	}
 
 	public function begin(): void {
 		if ( $this->in_transaction ) {
 			throw new \LogicException( 'Foundation transaction is already active.' );
 		}
+		$this->verified_isolation();
 		$this->checked( 'START TRANSACTION' );
 		$this->in_transaction = true;
 	}
