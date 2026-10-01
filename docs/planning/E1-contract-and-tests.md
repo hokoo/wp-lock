@@ -37,6 +37,8 @@
 
 **Evidence — 2026-09-29:** the [B0 diagnostic record](evidence/E1-02.md) contains passing MySQL/MariaDB RR/RC baseline observations, controls, retained JSONL, and a successful existing-suite run (51 tests / 140 assertions / zero skips) on an identical temporary source copy with compatible dependencies. OWNER accepted the [ADR](adr/001-contract.md)'s D1 research approach and D2/D3/D5/D6 designs. B0's empirical D1 target validation matrix and OWNER acceptance, the final release support matrix, D2 feasibility, and later recovery/migration/API verification remain open. E1-01 and E1-02 remain in `review` until the B0 PR merges; E1-QA remains `waiting_dependency`.
 
+**D1 evidence — 2026-10-01:** the [six-row proposal and result table](evidence/D1-matrix.md) links the exact [JSONL and provenance manifest](evidence/d1/manifest.md) from one serial disposable-database run at HEAD `6086416` plus identified uncommitted harness/doc changes. All six diagnostics exited 0 with expected legacy RC conflicts, sampled RR and READ/READ controls, and no recorded failures. This partial WordPress `wpdb` bootstrap is separate from the earlier existing-suite result and supplies no target-protocol or release support evidence. OWNER acceptance of the six-row validation targets and future CI shape, independent E1-QA, and review/merge remain open; task statuses above are unchanged.
+
 ## E1-QA. Independent contract and evidence review
 
 - **Status:** waiting_dependency. **Owner:** QA. **Priority:** P0. **Batch:** B0.
