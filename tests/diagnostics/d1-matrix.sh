@@ -8,6 +8,8 @@ out=$(mktemp -d /tmp/wp-lock-d1.XXXXXXXX) || exit 2
 printf 'D1 artifacts: %s\n' "$out"
 mkdir -p "$out/build" "$out/source" "$out/logs"
 docker_bin=${D1_DOCKER:-docker}
+diagnostic=${D1_DIAGNOSTIC_SCRIPT:-tests/diagnostics/e1-baseline.php}
+[[ "$diagnostic" == tests/diagnostics/e1-baseline.php || "$diagnostic" == tests/diagnostics/e3-foundations.php ]] || { printf 'Unsupported diagnostic path\n' >&2; exit 2; }
 d1_docker() { "$docker_bin" "$@"; }
 active_name=
 active_label=
@@ -85,7 +87,7 @@ for row in "${rows[@]}"; do
 	if d1_docker run --rm --network none --mount "type=bind,src=$repo_dir,dst=/repo,readonly" \
 		--mount "type=bind,src=$wp_source,dst=/wp,readonly" --mount "type=bind,src=$socket_dir,dst=/e1" \
 		--workdir /repo -e WP_LOCK_E1_DISPOSABLE=wp_lock_e1 -e WP_LOCK_E1_SOCKET=/e1/mysql.sock -e WP_LOCK_E1_WP=/wp \
-		"wp-lock-d1-php:$php_version" php tests/diagnostics/e1-baseline.php > "$out/logs/$label.jsonl" 2> "$out/logs/$label.stderr"; then
+		"wp-lock-d1-php:$php_version" php "$diagnostic" > "$out/logs/$label.jsonl" 2> "$out/logs/$label.stderr"; then
 		status=0
 	else
 		status=$?
@@ -96,6 +98,9 @@ for row in "${rows[@]}"; do
 	active_name=
 	[[ "$status" -le 1 ]] || die "diagnostic bootstrap $label (exit $status)"
 	grep -Fq '"case":"summary"' "$out/logs/$label.jsonl" || die "diagnostic missing summary $label"
+	if [[ "${D1_REQUIRE_PASS:-0}" == 1 ]]; then
+		[[ "$status" -eq 0 ]] && grep -Fq '"pass":true' "$out/logs/$label.jsonl" || die "diagnostic failure $label"
+	fi
 	grep -Fq '"engine":"InnoDB"' "$out/logs/$label.jsonl" || die "non-InnoDB $label"
 	grep -Fq '"isolation":"REPEATABLE READ"' "$out/logs/$label.jsonl" || die "missing RR $label"
 	grep -Fq '"isolation":"READ COMMITTED"' "$out/logs/$label.jsonl" || die "missing RC $label"

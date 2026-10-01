@@ -1,0 +1,15 @@
+Installing...
+Running as single site... To run multisite, use -c tests/phpunit/multisite.xml
+Not running ajax tests. To execute these, use --group ajax.
+Not running ms-files tests. To execute these, use --group ms-files.
+Not running external-http tests. To execute these, use --group external-http.
+PHPUnit 9.6.37 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 7.4.3
+Configuration: /tmp/wp-lock-b1-suite-final.5tLHjEKQ/phpunit.xml.dist
+
+......................................................            54 / 54 (100%)
+
+Time: 00:02.350, Memory: 44.50 MB
+
+OK (54 tests, 143 assertions)

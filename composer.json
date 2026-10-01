@@ -12,7 +12,8 @@
             "lib/class-wp-lock.php",
             "lib/helpers/Database.php",
             "lib/backend/class-wp-lock-backend.php",
-            "lib/backend/class-wp-lock-backend-db.php"
+            "lib/backend/class-wp-lock-backend-db.php",
+            "lib/backend/class-wp-lock-foundations.php"
         ]
     },
     "require-dev": {

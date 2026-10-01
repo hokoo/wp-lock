@@ -70,6 +70,9 @@ class WP_Lock_Backend_DB_UnitTestCase extends WP_UnitTestCase {
 	public function invalid_constructor_arguments(): array {
 		return array(
 			'negative timeout' => array( -0.01, 0 ),
+			'NaN timeout' => array( NAN, 0 ),
+			'infinite timeout' => array( INF, 0 ),
+			'negative infinite timeout' => array( -INF, 0 ),
 			'negative retries' => array( 0.01, -1 ),
 		);
 	}

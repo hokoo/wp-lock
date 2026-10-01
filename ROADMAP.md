@@ -11,7 +11,7 @@ This is the single roadmap for release scope. The [issue register](docs/issues/R
 | 2.0.0 | Current baseline | Existing API and backend examined by the audit | History in [CHANGELOG](CHANGELOG.md) |
 | **3.0.0** | **planned — next release** | Correct ownership, lifetime, recovery, migration, and verification of identified issues | **E1, E3, E4, E5**; 15 tasks including four independent QA gates |
 
-Release dates are not assigned. B0 and E1-QA are complete after [PR #7](https://github.com/hokoo/wp-lock/pull/7) merged into `release/3.0`; B1–B5 and backend implementation have not started. The execution authorization covered B0 only. Plugin metadata and the existing changelog continue to describe 2.0.0 until release preparation. Renewal (ISSUE-012) is deferred without a release target.
+Release dates are not assigned. B0 and E1-QA are complete after [PR #7](https://github.com/hokoo/wp-lock/pull/7) merged into `release/3.0`; B1 / E3-02 is locally verified and in review under OWNER authorization dated 2026-10-01, pending required PR/merge delivery; B2–B5 remain unstarted and unauthorized. Plugin metadata and the existing changelog continue to describe 2.0.0 until release preparation. Renewal (ISSUE-012) is deferred without a release target.
 
 <a id="v300"></a>
 ## 3.0.0 — Resolve identified issues
@@ -54,6 +54,6 @@ flowchart LR
 
 ## Decisions and estimates
 
-The [decision register](docs/planning/README.md#decisions) tracks D1–D6. OWNER accepted D1's research approach on 2026-09-29 and the [six exact validation configurations](docs/planning/evidence/D1-matrix.md) and future CI split on 2026-10-01; the ADR's D2 architecture, D3 recovery design, D5 migration/rollback design, and D6 diagnostic/API/timeout design were accepted on 2026-09-29. Final release support, D2 feasibility, D3 and D5 rehearsals, and D6 regressions require later evidence. D4 only records deferred ISSUE-012 and has no task or version commitment. Decision acceptance does not authorize B1 or establish a verified release contract.
+The [decision register](docs/planning/README.md#decisions) tracks D1–D6. OWNER accepted D1's research approach on 2026-09-29 and the [six exact validation configurations](docs/planning/evidence/D1-matrix.md) and future CI split on 2026-10-01; the ADR's D2 architecture, D3 recovery design, D5 migration/rollback design, and D6 diagnostic/API/timeout design were accepted on 2026-09-29. [B1 evidence](docs/planning/evidence/E3-02.md) verifies D2 foundations locally after the accepted controlled MariaDB session clarification. Final release support, integrated D2 ownership, D3 and D5 rehearsals, and remaining D6 regressions require later evidence. D4 only records deferred ISSUE-012 and has no task or version commitment. B1 execution is separately authorized; decision acceptance does not establish a verified release contract.
 
 The audit's earlier 8–15 engineering working days is provisional. Re-estimate after the ADR, including QA, review/merge, and migration. No calendar delivery date is promised.
