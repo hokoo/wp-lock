@@ -1,0 +1,14 @@
+{"case":"environment","data":{"version":"10.11.10-MariaDB-ubu2204","autocommit":"1","autoinc_mode":"1","binlog_format":"MIXED"}}
+{"case":"simultaneous_acquire","data":{"isolation":"REPEATABLE READ","levels":[32,32],"both":0,"errors":0,"max_rows":1,"rounds":200}}
+{"case":"simultaneous_acquire","data":{"isolation":"REPEATABLE READ","levels":[8,32],"both":0,"errors":0,"max_rows":1,"rounds":200}}
+{"case":"simultaneous_acquire","data":{"isolation":"REPEATABLE READ","levels":[8,8],"both":200,"errors":0,"max_rows":2,"rounds":200}}
+{"case":"simultaneous_acquire","data":{"isolation":"READ COMMITTED","levels":[32,32],"both":162,"errors":0,"max_rows":2,"rounds":200}}
+{"case":"simultaneous_acquire","data":{"isolation":"READ COMMITTED","levels":[8,32],"both":180,"errors":0,"max_rows":2,"rounds":200}}
+{"case":"simultaneous_acquire","data":{"isolation":"READ COMMITTED","levels":[8,8],"both":200,"errors":0,"max_rows":2,"rounds":200}}
+{"case":"ttl_overlap_and_safe_old_release","data":{"first":true,"second":true,"still_held":true,"successor_survives":true}}
+{"case":"outer_rollback_loses_lock","data":{"first":true,"second":true}}
+{"case":"slow_statement_ttl","data":{"acquired":true,"elapsed":1.2006380558013916,"exists_on_return":false,"blocking_acquired":true,"blocking_elapsed":1.200563907623291}}
+{"case":"ghost_liveness_error_deletes_live_lock","data":{"second_after_liveness_error":true}}
+{"case":"ghost_local_pid_masks_absent_connection","data":{"ghosts_with_local_pid":0}}
+{"case":"long_resource_id_strict_mode","data":"Unable to acquire lock because of a database error: Data too long for column 'original_key' at row 1"}
+{"case":"exists_database_error","data":{"exists":false,"error":"Table 'wp_lock_audit.audit_lock' doesn't exist"}}
