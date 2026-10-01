@@ -239,17 +239,36 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 	}
 
 	public function _test_concurrent_pageview_updates_child( $post_id, $resource_id, $increments ): bool {
-		foreach ( range( 1, $increments ) as $_ ) {
+		foreach ( range( 1, $increments ) as $iteration ) {
 			$backend = new WP_Lock_Backend_DB( 5.0 );
-			if ( ! $backend->acquire( $resource_id, WP_Lock::WRITE, true, 0 ) ) {
-				return false;
-			}
-
+			$started = microtime( true );
+			$acquire_duration = null;
+			$phase = 'acquire';
 			try {
-				$pageviews = get_post_meta( $post_id, 'pageviews', true );
-				update_post_meta( $post_id, 'pageviews', (int) $pageviews + 1 );
-			} finally {
-				$backend->release( $resource_id );
+				$acquired = $backend->acquire( $resource_id, WP_Lock::WRITE, true, 0 );
+				$acquire_duration = microtime( true ) - $started;
+				if ( ! $acquired ) {
+					fwrite(
+						STDERR,
+						sprintf( 'Pageview acquire %d/%d returned false after %.3fs.%s', $iteration, $increments, $acquire_duration, PHP_EOL )
+					);
+					return false;
+				}
+
+				try {
+					$phase = 'update';
+					$pageviews = get_post_meta( $post_id, 'pageviews', true );
+					update_post_meta( $post_id, 'pageviews', (int) $pageviews + 1 );
+				} finally {
+					$phase = 'release';
+					$backend->release( $resource_id );
+				}
+			} catch ( Throwable $error ) {
+				fwrite(
+					STDERR,
+					sprintf( 'Pageview %s %d/%d failed; acquire took %.3fs.%s', $phase, $iteration, $increments, null === $acquire_duration ? microtime( true ) - $started : $acquire_duration, PHP_EOL )
+				);
+				throw $error;
 			}
 		}
 
