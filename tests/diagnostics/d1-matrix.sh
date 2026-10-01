@@ -9,7 +9,7 @@ printf 'D1 artifacts: %s\n' "$out"
 mkdir -p "$out/build" "$out/source" "$out/logs"
 docker_bin=${D1_DOCKER:-docker}
 diagnostic=${D1_DIAGNOSTIC_SCRIPT:-tests/diagnostics/e1-baseline.php}
-[[ "$diagnostic" == tests/diagnostics/e1-baseline.php || "$diagnostic" == tests/diagnostics/e3-foundations.php ]] || { printf 'Unsupported diagnostic path\n' >&2; exit 2; }
+[[ "$diagnostic" == tests/diagnostics/e1-baseline.php || "$diagnostic" == tests/diagnostics/e3-foundations.php || "$diagnostic" == tests/diagnostics/e3-ownership.php ]] || { printf 'Unsupported diagnostic path\n' >&2; exit 2; }
 d1_docker() { "$docker_bin" "$@"; }
 active_name=
 active_label=
