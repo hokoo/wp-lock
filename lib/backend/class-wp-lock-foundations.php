@@ -2,8 +2,11 @@
 
 namespace iTRON\WP_Lock;
 
+/** A failed statement with a driver error code from the controlled connection. */
+final class WP_Lock_Foundation_SQL_Error extends \RuntimeException {}
+
 /**
- * Inactive 3.0 protocol foundations. Public acquisition still uses the 2.0 path.
+ * Controlled 3.0 resource and owner transactions on an independent connection.
  */
 final class WP_Lock_Foundations {
 	const RESOURCE_TABLE = 'lock_resource';
@@ -25,7 +28,7 @@ final class WP_Lock_Foundations {
 		$this->route = $route;
 	}
 
-	/** Prepare additive schema explicitly; this does not enable 3.0 acquisition. */
+	/** Prepare additive schema explicitly; live-site protocol switching is separate. */
 	public static function prepare_schema(): void {
 		global $wpdb;
 
@@ -84,9 +87,12 @@ final class WP_Lock_Foundations {
 	}
 
 	public static function open( ?string $namespace = null ): self {
+		global $wpdb;
 		$namespace = null === $namespace ? self::namespace() : $namespace;
 		$session = self::connect( $namespace );
 		try {
+			$level = self::session_isolation( $wpdb );
+			$session->isolation( $level );
 			self::verify_schema( $session->db, $namespace );
 			$session->assert_connection();
 			return $session;
@@ -168,7 +174,7 @@ final class WP_Lock_Foundations {
 
 	private static function ddl( self $session, string $sql ): void {
 		try {
-			$session->checked( $sql );
+			$session->checked( $sql, false, 'schema-ddl' );
 		} catch ( \RuntimeException $error ) {
 			throw new \RuntimeException( 'Lock foundation schema change failed.', 0, $error );
 		}
@@ -260,11 +266,18 @@ final class WP_Lock_Foundations {
 		}
 	}
 
-	private function checked( string $sql, bool $rows = false ) {
+	private function checked( string $sql, bool $rows = false, string $tag = 'unspecified' ) {
 		$this->assert_connection();
 		$result = $rows ? $this->db->get_results( $sql, ARRAY_A ) : $this->db->query( $sql );
 		if ( false === $result || ! empty( $this->db->last_error ) ) {
-			throw new \RuntimeException( 'Lock foundation SQL failed.' );
+			$operation = preg_match( '/\A\s*(SELECT|INSERT|DELETE|UPDATE|COMMIT|ROLLBACK|START|SET|CREATE|ALTER)\b/i', $sql, $matches ) ? strtoupper( $matches[1] ) : 'OTHER';
+			list( $errno, $sqlstate ) = $this->db->lock_error_codes();
+			throw new WP_Lock_Foundation_SQL_Error( sprintf(
+				'Lock foundation SQL failed (operation=%s, tag=%s, result=%s, last_error=%s, errno=%s, sqlstate=%s).',
+				$operation, $tag, false === $result ? 'false' : 'non-false', empty( $this->db->last_error ) ? 'empty' : 'present',
+				null === $errno ? 'unavailable' : (string) $errno,
+				null === $sqlstate ? 'unavailable' : $sqlstate
+			), null === $errno ? 0 : $errno );
 		}
 		$this->assert_connection();
 		return $result;
@@ -274,15 +287,15 @@ final class WP_Lock_Foundations {
 		try {
 			$route = self::route( $this->db );
 		} catch ( \RuntimeException $error ) {
-			throw new \RuntimeException( 'Lock foundation session changed or is unavailable; outcome uncertain.', 0, $error );
+			throw new WP_Lock_Ownership_Uncertain( 'Lock foundation session changed or is unavailable; outcome uncertain.', 0, $error );
 		}
 		foreach ( array( 'database_name', 'server_name', 'server_port', 'server_id', 'connection_id' ) as $key ) {
 			if ( (string) $this->route[ $key ] !== (string) $route[ $key ] ) {
-				throw new \RuntimeException( 'Lock foundation session changed or is unavailable; outcome uncertain.' );
+				throw new WP_Lock_Ownership_Uncertain( 'Lock foundation session changed or is unavailable; outcome uncertain.' );
 			}
 		}
 		if ( ! self::writable_read_only( $route['read_only'] ) ) {
-			throw new \RuntimeException( 'Lock foundation session changed or is unavailable; outcome uncertain.' );
+			throw new WP_Lock_Ownership_Uncertain( 'Lock foundation session changed or is unavailable; outcome uncertain.' );
 		}
 	}
 
@@ -295,25 +308,30 @@ final class WP_Lock_Foundations {
 		if ( ! in_array( $level, array( 'REPEATABLE READ', 'READ COMMITTED' ), true ) ) {
 			throw new \InvalidArgumentException( 'Unsupported transaction isolation.' );
 		}
-		$this->checked( 'SET SESSION TRANSACTION ISOLATION LEVEL ' . $level );
+		$this->checked( 'SET SESSION TRANSACTION ISOLATION LEVEL ' . $level, false, 'isolation-set' );
 		if ( $level !== $this->verified_isolation() ) {
 			throw new \RuntimeException( 'Foundation isolation could not be verified.' );
 		}
 	}
 
 	private function verified_isolation(): string {
-		$actual = $this->db->get_var( "SHOW SESSION VARIABLES LIKE 'transaction_isolation'", 1 );
-		if ( ! empty( $this->db->last_error ) ) {
+		$actual = self::session_isolation( $this->db );
+		$this->assert_connection();
+		return $actual;
+	}
+
+	private static function session_isolation( $db ): string {
+		$actual = $db->get_var( "SHOW SESSION VARIABLES LIKE 'transaction_isolation'", 1 );
+		if ( ! empty( $db->last_error ) ) {
 			throw new \RuntimeException( 'Foundation isolation could not be verified.' );
 		}
 		if ( null === $actual ) {
-			$actual = $this->db->get_var( "SHOW SESSION VARIABLES LIKE 'tx_isolation'", 1 );
+			$actual = $db->get_var( "SHOW SESSION VARIABLES LIKE 'tx_isolation'", 1 );
 		}
 		$actual = str_replace( '-', ' ', strtoupper( (string) $actual ) );
-		if ( ! empty( $this->db->last_error ) || ! in_array( $actual, array( 'REPEATABLE READ', 'READ COMMITTED' ), true ) ) {
+		if ( ! empty( $db->last_error ) || ! in_array( $actual, array( 'REPEATABLE READ', 'READ COMMITTED' ), true ) ) {
 			throw new \RuntimeException( 'Foundation isolation could not be verified.' );
 		}
-		$this->assert_connection();
 		return $actual;
 	}
 
@@ -322,7 +340,7 @@ final class WP_Lock_Foundations {
 			throw new \LogicException( 'Foundation transaction is already active.' );
 		}
 		$this->verified_isolation();
-		$this->checked( 'START TRANSACTION' );
+		$this->checked( 'START TRANSACTION', false, 'transaction-begin' );
 		$this->in_transaction = true;
 	}
 
@@ -337,8 +355,8 @@ final class WP_Lock_Foundations {
 		}
 		$key = md5( $id );
 		$table = self::quote( $this->namespace . self::RESOURCE_TABLE );
-		$this->checked( $this->db->prepare( "INSERT IGNORE INTO {$table} (lock_key) VALUES (%s)", $key ) );
-		$rows = $this->checked( $this->db->prepare( "SELECT lock_key FROM {$table} WHERE lock_key = %s FOR UPDATE", $key ), true );
+		$this->checked( $this->db->prepare( "INSERT IGNORE INTO {$table} (lock_key) VALUES (%s)", $key ), false, 'resource-insert' );
+		$rows = $this->checked( $this->db->prepare( "SELECT lock_key FROM {$table} WHERE lock_key = %s FOR UPDATE", $key ), true, 'resource-select' );
 		if ( 1 !== count( $rows ) || $key !== $rows[0]['lock_key'] ) {
 			throw new \RuntimeException( 'Resource row could not be locked.' );
 		}
@@ -349,20 +367,55 @@ final class WP_Lock_Foundations {
 	public function current_owners( string $id ): array {
 		$this->require_resource_lock( $id );
 		$table = self::quote( $this->namespace . WP_Lock_Backend_DB::TABLE_NAME );
-		return $this->checked( $this->db->prepare( "SELECT id, level, attempt_token FROM {$table} WHERE lock_key = %s FOR UPDATE", md5( $id ) ), true );
+		return $this->checked( $this->db->prepare( "SELECT id, level, expire, attempt_token FROM {$table} WHERE lock_key = %s FOR UPDATE", md5( $id ) ), true, 'owner-select' );
 	}
 
-	public function insert_owner( string $id, int $level, string $token ): int {
+	/** Database time is read after the resource lock, never from a waiting statement. */
+	public function now(): float {
+		$this->assert_connection();
+		$now = $this->db->get_var( 'SELECT UNIX_TIMESTAMP(NOW(6))' );
+		if ( null === $now || ! empty( $this->db->last_error ) ) {
+			throw new \RuntimeException( 'Unable to read lock database time.' );
+		}
+		$this->assert_connection();
+		return (float) $now;
+	}
+
+	public function delete_owner( string $id, int $owner_id, ?string $token ): int {
+		$this->require_resource_lock( $id );
+		$table = self::quote( $this->namespace . WP_Lock_Backend_DB::TABLE_NAME );
+		$token_condition = null === $token ? 'attempt_token IS NULL' : $this->db->prepare( 'attempt_token = %s', $token );
+		return $this->checked( $this->db->prepare(
+			"DELETE FROM {$table} WHERE id = %d AND lock_key = %s AND {$token_condition}",
+			$owner_id, md5( $id )
+		), false, 'owner-delete' );
+	}
+
+	public function insert_owner( string $id, int $level, string $token, float $expire = 0.0, ?string $original_key = null ): int {
 		$this->require_resource_lock( $id );
 		if ( ! in_array( $level, array( WP_Lock::READ, WP_Lock::WRITE ), true ) || ! preg_match( '/\A[0-9a-f]{32}\z/D', $token ) ) {
 			throw new \InvalidArgumentException( 'Invalid foundation owner or attempt token.' );
 		}
 		$table = self::quote( $this->namespace . WP_Lock_Backend_DB::TABLE_NAME );
+		$original = null === $original_key ? 'NULL' : $this->db->prepare( '%s', $original_key );
 		$this->checked( $this->db->prepare(
-			"INSERT INTO {$table} (lock_key, original_key, level, attempt_token, expire) VALUES (%s, NULL, %d, %s, 0)",
-			md5( $id ), $level, $token
-		) );
+			"INSERT INTO {$table} (lock_key, original_key, level, pid, cid, attempt_token, expire) VALUES (%s, {$original}, %d, %d, CONNECTION_ID(), %s, %f)",
+			md5( $id ), $level, getmypid() ?: 0, $token, $expire
+		), false, 'owner-insert' );
 		return (int) $this->db->insert_id;
+	}
+
+	public function exists( string $id, int $level ): bool {
+		$table = self::quote( $this->namespace . WP_Lock_Backend_DB::TABLE_NAME );
+		$found = $this->db->get_var( $this->db->prepare(
+			"SELECT 1 FROM {$table} WHERE lock_key = %s AND level >= %d AND (expire = 0 OR expire > UNIX_TIMESTAMP(NOW(6))) LIMIT 1",
+			md5( $id ), $level
+		) );
+		if ( ! empty( $this->db->last_error ) ) {
+			throw new \RuntimeException( 'Unable to check lock existence because of a database error.' );
+		}
+		$this->assert_connection();
+		return null !== $found;
 	}
 
 	public function find_attempt( string $id, string $token ): array {
@@ -371,7 +424,7 @@ final class WP_Lock_Foundations {
 		return $this->checked( $this->db->prepare(
 			"SELECT id, lock_key, attempt_token FROM {$table} WHERE lock_key = %s AND attempt_token = %s FOR UPDATE",
 			md5( $id ), $token
-		), true );
+		), true, 'attempt-select' );
 	}
 
 	public static function new_token(): string {
@@ -388,7 +441,7 @@ final class WP_Lock_Foundations {
 		if ( ! $this->in_transaction ) {
 			throw new \LogicException( 'No foundation transaction to commit.' );
 		}
-		$this->checked( 'COMMIT' );
+		$this->checked( 'COMMIT', false, 'transaction-commit' );
 		$this->in_transaction = false;
 		$this->resource_locked = false;
 		$this->locked_key = null;
@@ -398,7 +451,7 @@ final class WP_Lock_Foundations {
 		if ( ! $this->in_transaction ) {
 			throw new \LogicException( 'No foundation transaction to roll back.' );
 		}
-		$this->checked( 'ROLLBACK' );
+		$this->checked( 'ROLLBACK', false, 'transaction-rollback' );
 		$this->in_transaction = false;
 		$this->resource_locked = false;
 		$this->locked_key = null;

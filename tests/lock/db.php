@@ -3,6 +3,7 @@
 use iTRON\WP_Lock\helpers\Database;
 use iTRON\WP_Lock\WP_Lock;
 use iTRON\WP_Lock\WP_Lock_Backend_DB;
+use iTRON\WP_Lock\WP_Lock_Foundations;
 
 class WP_Lock_Backend_DB_UnitTestCase extends WP_UnitTestCase {
 	protected function setUp(): void {
@@ -11,6 +12,7 @@ class WP_Lock_Backend_DB_UnitTestCase extends WP_UnitTestCase {
 
 		Database::register_table( WP_Lock_Backend_DB::TABLE_NAME );
 		WP_Lock_Backend_DB::maybe_upgrade_schema( true );
+		WP_Lock_Foundations::prepare_schema();
 		$this->delete_all_locks();
 	}
 
@@ -172,7 +174,7 @@ class WP_Lock_Backend_DB_UnitTestCase extends WP_UnitTestCase {
 		$this->assertFalse( $owner->exists( $resource_id, WP_Lock::WRITE ) );
 	}
 
-	public function test_acquire_recovers_when_the_lock_table_is_missing(): void {
+	public function test_acquire_refuses_missing_prepared_schema(): void {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . WP_Lock_Backend_DB::TABLE_NAME;
@@ -180,39 +182,20 @@ class WP_Lock_Backend_DB_UnitTestCase extends WP_UnitTestCase {
 		$wpdb->query( "DROP TABLE IF EXISTS `{$table_name}`" );
 
 		$backend  = new WP_Lock_Backend_DB( 0.05, 1 );
-		$acquired = false;
 		try {
-			$acquired = $backend->acquire( 'missing-table', WP_Lock::WRITE, false, 0 );
-			$this->assertTrue( $acquired );
-			$this->assertSame(
-				$table_name,
-				$wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table_name ) ) )
-			);
-			$this->assertTrue( $this->index_exists( 'lock_key' ) );
+			$this->expectException( RuntimeException::class );
+			$backend->acquire( 'missing-table', WP_Lock::WRITE, false, 0 );
 		} finally {
-			if ( $acquired ) {
-				$backend->release( 'missing-table' );
-			}
 			WP_Lock_Backend_DB::maybe_upgrade_schema( true );
+			WP_Lock_Foundations::prepare_schema();
 		}
 	}
 
-	public function test_persistent_database_error_has_bounded_retries_and_restores_error_mode(): void {
+	public function test_invalid_prepared_schema_throws_database_error(): void {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . WP_Lock_Backend_DB::TABLE_NAME;
-		$attempts   = 0;
-		$count_acquisition_queries = function( $query ) use ( $table_name, &$attempts ) {
-			if ( 0 === strpos( ltrim( $query ), "INSERT INTO {$table_name}" ) ) {
-				$attempts++;
-			}
-
-			return $query;
-		};
-
 		$wpdb->query( "ALTER TABLE `{$table_name}` DROP COLUMN `original_key`" );
-		$previous_suppression = $wpdb->suppress_errors( true );
-		add_filter( 'query', $count_acquisition_queries );
 
 		try {
 			$backend = new WP_Lock_Backend_DB( 0.05, 2 );
@@ -220,16 +203,13 @@ class WP_Lock_Backend_DB_UnitTestCase extends WP_UnitTestCase {
 			$this->fail( 'Expected a persistent database error to throw.' );
 		} catch ( RuntimeException $exception ) {
 			$this->assertStringContainsString( 'database error', $exception->getMessage() );
-			$this->assertSame( 3, $attempts );
-			$this->assertTrue( $wpdb->suppress_errors );
 		} finally {
-			remove_filter( 'query', $count_acquisition_queries );
-			$wpdb->suppress_errors( $previous_suppression );
 			WP_Lock_Backend_DB::maybe_upgrade_schema( true );
+			WP_Lock_Foundations::prepare_schema();
 		}
 	}
 
-	public function test_constructor_migrates_schema_and_records_version(): void {
+	public function test_schema_upgrade_is_explicit_and_records_version(): void {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . WP_Lock_Backend_DB::TABLE_NAME;
@@ -240,6 +220,8 @@ class WP_Lock_Backend_DB_UnitTestCase extends WP_UnitTestCase {
 
 		try {
 			new WP_Lock_Backend_DB();
+			$this->assertFalse( $this->index_exists( 'lock_key' ) );
+			WP_Lock_Backend_DB::maybe_upgrade_schema( true );
 			$this->assertTrue( $this->index_exists( 'lock_key' ) );
 			$this->assertSame(
 				'decimal',

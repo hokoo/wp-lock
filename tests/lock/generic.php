@@ -3,6 +3,7 @@
 use iTRON\WP_Lock\helpers\Database;
 use iTRON\WP_Lock\WP_Lock;
 use iTRON\WP_Lock\WP_Lock_Backend_DB;
+use iTRON\WP_Lock\WP_Lock_Ownership_Lost;
 
 class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 	protected function setUp(): void {
@@ -171,7 +172,12 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 		$this->assertFalse( $writer->exists( $resource_id, WP_Lock::WRITE ) );
 		$reader = new WP_Lock_Backend_DB();
 		$this->assertTrue( $reader->acquire( $resource_id, WP_Lock::READ, false, 0 ) );
-		$this->assertTrue( $writer->release( $resource_id ) );
+		try {
+			$writer->release( $resource_id );
+			$this->fail( 'Expired predecessor release must report ownership loss.' );
+		} catch ( WP_Lock_Ownership_Lost $expected ) {
+			$this->assertTrue( $reader->exists( $resource_id, WP_Lock::READ ) );
+		}
 		$this->assertTrue( $reader->release( $resource_id ) );
 	}
 
@@ -276,6 +282,9 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 		try {
 			$children[] = run_in_child( array( $callback, 'run' ) );
 			$this->assert_children_succeeded( wp_lock_wait_for_children( $children, 5.0 ) );
+			if ( 1 === $expiration ) {
+				sleep( 2 );
+			}
 
 			$backend = new WP_Lock_Backend_DB();
 			$this->assertSame( $expect_ghost, ! empty( $backend->get_ghosts( $resource_id ) ) );
@@ -296,9 +305,10 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 
 	public function ghost_lock_scenarios(): array {
 		return array(
-			'no-expiration lock becomes a ghost' => array( 0, true, true, null ),
+			'no-expiration owner requires manual recovery' => array( 0, false, false, null ),
+			'expired finite owner is a ghost' => array( 1, true, true, null ),
 			'unexpired lock is not a ghost'       => array( 30, false, false, null ),
-			'zero resource identifier is scoped'  => array( 0, true, true, '0' ),
+			'zero resource identifier is scoped'  => array( 0, false, false, '0' ),
 		);
 	}
 }

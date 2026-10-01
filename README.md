@@ -4,6 +4,8 @@
 
 WP Lock provides shared READ locks and exclusive WRITE locks for WordPress. Version 2 uses a WordPress database table as its only bundled backend.
 
+The unreleased 3.0 development backend uses a permanent resource row and a separate database session for ownership changes. It requires an explicitly prepared foundation schema (`WP_Lock_Foundations::prepare_schema()`) on an isolated installation. The live-site migration and protocol switch belong to E5; this branch is not ready for mixed-version deployment.
+
 See the [project roadmap](ROADMAP.md) for planned versions, [known issues](docs/issues/README.md) for findings and evidence, and [epics and tasks](docs/planning/README.md) for execution details.
 
 ## Requirements
@@ -87,10 +89,10 @@ Resource identity uses the MD5 of the complete string ID. The optional `original
 `$expiration` is the lifetime, in seconds, of a lock after it has been acquired. It is not an acquisition timeout.
 
 - The default is 30 seconds.
-- `0` means no TTL; the lock remains until explicitly released or later identified as a database ghost.
+- `0` means no TTL; the lock remains until explicitly released or manually recovered after stopping all participants.
 - The value must be a non-negative integer.
 
-Use `try`/`finally` and release every acquired lock. Ghost cleanup is a recovery mechanism, not a substitute for deterministic release.
+Use `try`/`finally` and release every acquired lock. Choose a finite TTL longer than the maximum expected duration of the protected work, with margin for scheduling and database delays. Expiry cannot fence a stalled caller's application writes.
 
 ### Checking lock existence
 
@@ -108,7 +110,9 @@ The default level is `WP_Lock::WRITE`. Checking READ returns `true` for either a
 
 - `InvalidArgumentException` indicates an invalid resource identifier, backend, lock level, expiration, blocking timeout, or retry count.
 - `LogicException` indicates lifecycle misuse, such as acquiring the same object twice or releasing an object that does not hold a lock.
-- `RuntimeException` indicates a persistent database failure or a backend release failure. When release fails, the object remains in the held state so release can be retried.
+- `RuntimeException` indicates a database failure, including a failed `lock_exists()` query. An ordinary failed release keeps the owner handle and held state for retry.
+- `WP_Lock_Ownership_Uncertain` indicates that an INSERT, COMMIT, release, or cleanup outcome could not be confirmed. An uncertain acquire does not grant permission to enter protected work. Retain the same lock object and call `release()` to reconcile its attempt; unresolved TTL=0 owners need manual recovery if reconciliation cannot complete.
+- `WP_Lock_Ownership_Lost` indicates that a previously confirmed owner is gone or replaced. The wrapper clears that handle and will not delete a successor.
 
 ## Custom backends
 

@@ -1,6 +1,6 @@
 # Execution batches
 
-The root [ROADMAP](../../ROADMAP.md) owns release scope. Contracts are in [E1](E1-contract-and-tests.md), [E3](E3-acquisition.md), [E4](E4-leases-and-recovery.md), and [E5](E5-migration-and-release.md); [common DoD](README.md#common-task-contracts) applies. B0 and B1 are **completed**; B2–B5 are **not started**. All batches target one 3.0.0 candidate. Execution authorization covers B0 and B1 only.
+The root [ROADMAP](../../ROADMAP.md) owns release scope. Contracts are in [E1](E1-contract-and-tests.md), [E3](E3-acquisition.md), [E4](E4-leases-and-recovery.md), and [E5](E5-migration-and-release.md); [common DoD](README.md#common-task-contracts) applies. B0 and B1 are **completed**; B2 is **in progress**; B3–B5 have **not started**. All batches target one 3.0.0 candidate. Execution authorization covers B0–B2 only.
 
 A roadmap batch is an observable dependency boundary, not a single worker assignment. Global Gitflow targets `release/3.0`: use one `batch/bN` branch and one MR/PR per batch, starting each next branch from the updated `release/3.0`. Freeze, review, and test each batch branch before merge. Tasks remain `review` until their batch PR merges; a premerge QA readiness review does not close the final epic gate. Use a fresh bounded worker for each implementation, repair, test, or substantial document task. One writer is active at a time; a later writer starts only after the prior boundary is stable and accepted. Long, database-backed, coverage, and broad verification runs serially through `test_monitor`. Independent read-only analysis may overlap.
 
@@ -71,6 +71,8 @@ A `pass_with_notes` gate permits only nonblocking notes after every required cri
 - **Order:** E3-03 implements acquire/release and wrapper lifecycle against the chosen protocol; E3-QA independently reviews the integrated result.
 - **Verification:** MySQL/MariaDB × supported RR/RC × WRITE/WRITE, READ/WRITE, READ/READ, controlled interleavings, outer rollback, reconnection/uncertain commit, and predecessor release. Retain ownership until observation.
 - **Gate:** successful supported RR/RC acquisition with exclusion, shared readers, clear DB error/uncertainty, and no caller-transaction mutation.
+
+**B2 local implementation and verification checkpoint — 2026-10-01:** OWNER authorized B2 after B1 delivery. E3-03 is `review` on `batch/b2`, as an uncommitted diff atop `e0ce475`; E3-QA remains `waiting_dependency`. [E3-03 evidence](evidence/E3-03.md) records the public ownership code/tests/README and a final six-row MySQL/MariaDB RR/RC diagnostic with all rows exiting 0, strict JSONL, and empty stderr, plus a source-parity existing suite at 55 tests, 144 assertions, zero skips. Earlier fixture faults were repaired; a real MariaDB RC release deadlock was resolved by bounded rollback/retry. The changed artifacts are `README.md`, four library files, the matrix runner and public diagnostic, two test files, and this evidence/status documentation. No PR/merge, independent E3-QA, coverage, E4 final timing/recovery, or E5 migration/support is claimed. The next B2 gate is independent E3-QA; B3–B5 are unauthorized.
 
 ## B3. Timing and recovery
 

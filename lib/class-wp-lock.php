@@ -32,6 +32,7 @@ class WP_Lock {
 	 * @var bool Whether this instance currently holds a lock.
 	 */
 	private $held = false;
+	private $unresolved = false;
 
 	/**
 	 * Create a resource concurrency lock.
@@ -65,7 +66,7 @@ class WP_Lock {
 		$this->lock_backend = $lock_backend;
 
 		register_shutdown_function( function( $lock ) {
-			if ( $lock->held ) {
+			if ( $lock->held || $lock->unresolved ) {
 				trigger_error( 'Not all locks released for ' . $lock->id );
 			}
 		}, $this );
@@ -96,7 +97,12 @@ class WP_Lock {
 			throw new \LogicException( 'This WP_Lock instance already holds a lock.' );
 		}
 
-		if ( ! $this->lock_backend->acquire( $this->id, $level, $blocking, $expiration ) ) {
+		try {
+			$acquired = $this->lock_backend->acquire( $this->id, $level, $blocking, $expiration );
+		} finally {
+			$this->unresolved = $this->lock_backend instanceof WP_Lock_Backend_DB && $this->lock_backend->has_unresolved( $this->id );
+		}
+		if ( ! $acquired ) {
 			return false;
 		}
 
@@ -111,15 +117,21 @@ class WP_Lock {
 	 * @return void
 	 */
 	public function release(): void {
-		if ( ! $this->held ) {
+		if ( ! $this->held && ! $this->unresolved ) {
 			throw new \LogicException( 'This WP_Lock instance does not hold a lock.' );
 		}
 
-		if ( ! $this->lock_backend->release( $this->id ) ) {
-			throw new \RuntimeException( 'The backend failed to release the lock.' );
+		try {
+			if ( ! $this->lock_backend->release( $this->id ) ) {
+				throw new \RuntimeException( 'The backend failed to release the lock.' );
+			}
+		} catch ( WP_Lock_Ownership_Lost $error ) {
+			$this->held = false;
+			throw $error;
 		}
 
 		$this->held = false;
+		$this->unresolved = false;
 	}
 
 	/**
