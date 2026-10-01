@@ -13,7 +13,7 @@
 
 ## E3-02. Protocol foundations and resource identity
 
-- **Status:** needs_design. **Owner:** DEV. **Priority:** P0. **Batch:** B1.
+- **Status:** todo. **Owner:** DEV. **Priority:** P0. **Batch:** B1.
 - **Goal:** provide the minimum schema, connection, and identity support selected by the ADR.
 - **Scope:** accepted protocol's schema/install verification, namespace capture, connection ownership if required, bounded/nullable diagnostic `original_key` evaluation, finite timeout validation, and directed fixtures.
 - **Out of Scope:** speculative resource/owner tables, new token/adapter without demonstrated need, acquisition switching, or a diagnostic TEXT/DDL upgrade absent evidence.
@@ -25,7 +25,7 @@
 
 ## E3-03. Acquire and release with the accepted protocol
 
-- **Status:** needs_design. **Owner:** DEV. **Priority:** P0. **Batch:** B2.
+- **Status:** waiting_dependency. **Owner:** DEV. **Priority:** P0. **Batch:** B2.
 - **Goal:** grant only compatible valid owners and release only the actual predecessor.
 - **Scope:** serialization chosen by ADR, current-owner checks, commit confirmation, bounded error retries, uncertainty/loss handling, public `exists()` error-versus-absence result contract, release, and wrapper held lifecycle; directed regressions.
 - **Out of Scope:** lease renewal, application fencing, E4's final deadline/recovery work, and live-site protocol switching.

@@ -2,7 +2,7 @@
 
 The root [ROADMAP.md](../../ROADMAP.md) owns versions and release scope. This directory contains execution contracts, not another release schedule. The [issue register](../issues/README.md) records findings; the [audit](../review-2026-09-29/assessment.md) provides research evidence.
 
-There are **four mandatory epics and 15 tasks** for one planned 3.0.0 release, including four independent QA tasks. B0 contract and diagnostic work is in progress; backend implementation has not started. Renewal is deferred as ISSUE-012 without a version or task breakdown.
+There are **four mandatory epics and 15 tasks** for one planned 3.0.0 release, including four independent QA tasks. B0 and E1-QA are complete; B1–B5 and backend implementation have not started. Execution authorization covered B0 only. Renewal is deferred as ISSUE-012 without a version or task breakdown.
 
 ## Navigation
 
@@ -28,7 +28,7 @@ E1-01 prepares **one** [ADR](adr/001-contract.md) covering supported contracts, 
 | D5 | design accepted; rehearsal pending | One 3.0.0 release. Use the ADR's stop, drain, verify, switch, and restart barrier in both directions; resolve TTL=0 and uncertain owners before switching. Rehearse installation, failures, and rollback before release. |
 | D6 | design accepted; regressions pending | Preserve full string resource identity. Store optional `original_key` only when representable and within its 50-character column; otherwise store `NULL` without truncation. Preserve `false` for ordinary contention/deadline and proven absence; distinguish DB errors, uncertainty, and confirmed loss with exceptions. Reject NaN/INF blocking timeouts while preserving finite zero/positive behavior. |
 
-Preserve existing `insert_id` owner identity, wrapper held lifecycle, and tests where compatible. Authorized E3 work must verify D2 feasibility before downstream acceptance. B0 must deliver E1-QA; the final release support matrix awaits E3–E5 evidence. These decisions do not authorize B1 execution.
+Preserve existing `insert_id` owner identity, wrapper held lifecycle, and tests where compatible. Authorized E3 work must verify D2 feasibility before downstream acceptance. [B0's final E1-QA gate passed](qa/E1.md#final-delivery--2026-10-01); the final release support matrix awaits E3–E5 evidence. These decisions do not authorize B1 execution.
 
 ## Common task contracts
 

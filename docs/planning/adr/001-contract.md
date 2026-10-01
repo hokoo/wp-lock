@@ -1,6 +1,6 @@
 # ADR 001: 3.0 lock contract and ownership protocol
 
-**Status:** D1 research approach and D2/D3/D5/D6 designs accepted by OWNER on 2026-09-29; D1's six validation targets and future CI split accepted on 2026-10-01. Final release support, D3 rehearsal, and implementation feasibility remain pending. No choice is implemented.
+**Status:** Accepted E1-01 ADR, delivered in B0 [PR #7](https://github.com/hokoo/wp-lock/pull/7); D1 research approach and D2/D3/D5/D6 designs accepted by OWNER on 2026-09-29, and D1's six validation targets and future CI split accepted on 2026-10-01. Final release support, D2 feasibility, D3/D5 rehearsals, and D6 regressions remain pending. No choice is implemented.
 **Date:** 2026-09-29. **Task:** [E1-01](../E1-contract-and-tests.md#e1-01-one-contract-and-protocol-adr).
 **Decision scope:** D1, D2, D3, D5, D6. D4 renewal remains [deferred](../../issues/README.md#issue-012).
 
@@ -24,7 +24,7 @@ For D1, pin exact stable patch releases, WordPress tags, and image digests for e
 
 The [accepted B0 D1 validation matrix and serial recipe](../evidence/D1-matrix.md) records exact released versions and backward anchors from primary release sources. Its [six retained legacy diagnostic outputs](../evidence/d1/manifest.md) confirm sampled RR controls and reproduce RC conflicts on all six rows; they do not validate the target protocol or full WordPress suite. D2 feasibility belongs to E3 and final release support to E5.
 
-OWNER accepted B0's evidence-led target validation matrix on 2026-10-01. D3's procedure and D5/D6's design are accepted; their feasibility, rehearsals, and required regressions remain open. The final D1 release support matrix remains pending E3/E4/E5 verification and OWNER acceptance before publication. These decisions do not waive QA or merge, complete E1-01, or establish implementation feasibility. A material change to the supported range or public error representation requires another OWNER decision.
+OWNER accepted B0's evidence-led target validation matrix on 2026-10-01. D3's procedure and D5/D6's design are accepted; their feasibility, rehearsals, and required regressions remain open. The final D1 release support matrix remains pending E3/E4/E5 verification and OWNER acceptance before publication. [E1-QA and B0 delivery passed](../qa/E1.md#final-delivery--2026-10-01); decision acceptance alone does not establish implementation feasibility. A material change to the supported range or public error representation requires another OWNER decision.
 
 ## D2 protocol and identity
 
@@ -98,4 +98,4 @@ On failure **before** enabling 3.0, keep 2.0 stopped until schema and owner stat
 - **E3/E4 directed verification:** execute the full real DB × RR/RC conflict/success matrix, deadlock/lock-wait/reconnect/uncertain commit and cleanup faults, failed public `release()` retry, `lock_exists()` SELECT error, slow SQL/expiry/late success, stale predecessor release, TTL=0 visibility failure and manual recovery. Record exact commands, revision, versions, engine/isolation, result, and limits. [E3](../E3-acquisition.md) and [E4](../E4-leases-and-recovery.md) own these regressions; E1-02 need not implement all of them.
 - **E5 gate:** rehearse the switch and rollback, run `composer test` on the accepted matrix and `composer test:coverage` with the existing >=90% line check, with no required PCNTL/POSIX skip. Review/merge and independent QA remain separate evidence. No such check was run for this ADR draft.
 
-**Open gates:** E1-QA and B0 review/merge delivery; D2 connection/protocol feasibility, D3 manual recovery rehearsal, D5 migration/rollback rehearsal, and D6 regressions during authorized later work; and D1's final release support matrix after E3/E4/E5 verification and OWNER acceptance. D1 validation-target and D2/D3/D5/D6 design acceptance do not satisfy these gates. E1-01 remains `review`; E1-QA is ready for independent premerge review. B0 ran only the legacy D1 diagnostic; no target-protocol runtime check has run.
+**Open gates:** D2 connection/protocol feasibility, D3 manual recovery rehearsal, D5 migration/rollback rehearsal, and D6 regressions during authorized later work; and D1's final release support matrix after E3/E4/E5 verification and OWNER acceptance. D1 validation-target and D2/D3/D5/D6 design acceptance do not satisfy these gates. E1-01 and E1-QA are `completed` after [B0's final delivery pass](../qa/E1.md#final-delivery--2026-10-01). B0 ran only the legacy D1 diagnostic; no target-protocol runtime check has run.

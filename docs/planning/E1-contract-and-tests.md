@@ -13,7 +13,7 @@
 
 ## E1-01. One contract and protocol ADR
 
-- **Status:** review. **Owner:** DO + OWNER. **Priority:** P0. **Batch:** B0.
+- **Status:** completed. **Owner:** DO + OWNER. **Priority:** P0. **Batch:** B0.
 - **Goal:** settle the 3.0.0 contract and the minimum protocol needed to satisfy it.
 - **Scope:** `docs/planning/adr/001-contract.md`; D1/D2/D3/D5/D6; supported matrix, READ/WRITE, resource/owner identity, namespace, caller transactions, serialization, commit uncertainty, TTL/deadlines, DB errors, cleanup, lost ownership, migration, and compatibility.
 - **Out of Scope:** implementing a candidate design, renewal, automatic external-write fencing, or selecting an architecture before evidence and OWNER acceptance.
@@ -25,7 +25,7 @@
 
 ## E1-02. Focused trustworthy diagnostic baseline
 
-- **Status:** review. **Owner:** TEST. **Priority:** P0. **Batch:** B0.
+- **Status:** completed. **Owner:** TEST. **Priority:** P0. **Batch:** B0.
 - **Goal:** expose the current high-risk failure modes with reusable, bounded observations.
 - **Scope:** existing test helpers and saved audit probe; independent connections/processes, controlled interleavings, READ/READ control, outer rollback, one fault/TTL control, and environment/SQL-mode evidence.
 - **Out of Scope:** implementing every E3/E4 regression in advance, backend fixes, or changing audit artifacts.
@@ -43,7 +43,7 @@
 
 ## E1-QA. Independent contract and evidence review
 
-- **Status:** todo. **Owner:** QA. **Priority:** P0. **Batch:** B0.
+- **Status:** completed. **Owner:** QA. **Priority:** P0. **Batch:** B0.
 - **Goal:** accept a usable contract and diagnostic baseline.
 - **Scope:** ADR, tests, source mapping, environment and isolation evidence, exact revision, and evidence limits.
 - **Out of Scope:** treating current backend as fixed or running production migration.
@@ -52,3 +52,5 @@
 - **AC:** decisions needed by E3–E5 are explicit; findings and controls are independently checked; legacy failures are labeled; no universal RR safety or target RC support is inferred from blanket refusal.
 - **Dependencies:** E1-01, E1-02.
 - **Notes/Risks:** missing mandatory decision or runtime evidence fails this gate.
+
+**Final delivery — 2026-10-01:** [B0 PR #7](https://github.com/hokoo/wp-lock/pull/7) merged into `release/3.0` as `164390fee0e48d89d83845e52c967aba9b5fb62e`. The independent [E1-QA final gate](qa/E1.md#final-delivery--2026-10-01) is `pass` for E1-01, E1-02, and E1-QA after merge/tree and final-head CI verification. Earlier dated checkpoints above retain their then-current statuses. Backend fixes and later E3–E5 gates remain open.
