@@ -78,7 +78,9 @@ $backend = new WP_Lock_Backend_DB( 10.0, 2 );
 $lock    = new WP_Lock( 'scheduled-import', $backend );
 ```
 
-Both constructor values must be non-negative.
+The timeout must be finite and non-negative; the retry count must be non-negative.
+
+Resource identity uses the MD5 of the complete string ID. The optional `original_key` diagnostic column stores a complete value only when it fits the column and is representable; otherwise it stores `NULL`.
 
 ### Expiration
 

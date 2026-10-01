@@ -1,6 +1,6 @@
 # ADR 001: 3.0 lock contract and ownership protocol
 
-**Status:** Accepted E1-01 ADR, delivered in B0 [PR #7](https://github.com/hokoo/wp-lock/pull/7); D1 research approach and D2/D3/D5/D6 designs accepted by OWNER on 2026-09-29, and D1's six validation targets and future CI split accepted on 2026-10-01. Final release support, D2 feasibility, D3/D5 rehearsals, and D6 regressions remain pending. No choice is implemented.
+**Status:** Accepted E1-01 ADR, delivered in B0 [PR #7](https://github.com/hokoo/wp-lock/pull/7); D1 research approach and D2/D3/D5/D6 designs accepted by OWNER on 2026-09-29, and D1's six validation targets and future CI split accepted on 2026-10-01. B1 foundations and directed D6 identity/timeout checks are locally implemented and verified; see [E3-02 evidence](../evidence/E3-02.md). Required B1 PR/merge, integrated ownership, final release support, D3/D5 rehearsals, and remaining D6 regressions are pending.
 **Date:** 2026-09-29. **Task:** [E1-01](../E1-contract-and-tests.md#e1-01-one-contract-and-protocol-adr).
 **Decision scope:** D1, D2, D3, D5, D6. D4 renewal remains [deferred](../../issues/README.md#issue-012).
 
@@ -49,6 +49,10 @@ Alternatives considered:
 | Lock the absent owner-table range or add `FOR UPDATE` around the old check | Reject as the sole protocol: absence has no common durable row under RC, and RR snapshots still need explicit current reads. |
 | MySQL/MariaDB `GET_LOCK()` as resource mutex | Defer: it is exclusive and session scoped; shared READ, TTL and uncertain reconnect would still need an owner-row protocol. It would exchange one small table for more connection/proxy dependence. [MySQL locking functions](https://dev.mysql.com/doc/refman/8.0/en/locking-functions.html) document session ownership. |
 | Global DB mutex or table lock | Reject as the release protocol: it serializes unrelated resources and creates unnecessary contention. |
+
+### D2 clarification — controlled MariaDB snapshot isolation (2026-10-01)
+
+OWNER accepted setting and verifying `innodb_snapshot_isolation=OFF` **only on the independent WP Lock connection** when the server exposes that variable. Preserve the configured RR/RC isolation and leave the caller connection unchanged. Refuse the foundation if the controlled-session setting cannot be established and verified. This responds to the B1 MariaDB 13.0.2 RR feasibility failure (errno 1020 / SQLSTATE HY000, record changed since snapshot) retained at `/tmp/wp-lock-d1.1qBqC2M2`; MySQL 26.7 and 9.7 passed that attempt. [MariaDB documents](https://mariadb.com/docs/server/server-usage/storage-engines/innodb/innodb-system-variables#innodb_snapshot_isolation) the snapshot conflict behavior and ON default from 11.6.2. The revised [six-row B1 matrix](../evidence/E3-02.md) subsequently passed, including caller-session preservation. This verifies the foundation locally; it does not enable the new public protocol or complete merge delivery.
 
 ## Time, results, and recovery contract
 

@@ -13,7 +13,7 @@
 
 ## E3-02. Protocol foundations and resource identity
 
-- **Status:** todo. **Owner:** DEV. **Priority:** P0. **Batch:** B1.
+- **Status:** review. **Owner:** DEV. **Priority:** P0. **Batch:** B1.
 - **Goal:** provide the minimum schema, connection, and identity support selected by the ADR.
 - **Scope:** accepted protocol's schema/install verification, namespace capture, connection ownership if required, bounded/nullable diagnostic `original_key` evaluation, finite timeout validation, and directed fixtures.
 - **Out of Scope:** speculative resource/owner tables, new token/adapter without demonstrated need, acquisition switching, or a diagnostic TEXT/DDL upgrade absent evidence.
@@ -21,7 +21,7 @@
 - **DoD:** DoD-C; targeted install/invalid-schema/DDL-failure, strict-mode/Unicode/shared-prefix, transaction and numeric-boundary checks; scoped review/merge.
 - **AC:** full ID continues existing key derivation and cannot collide through diagnostic truncation; `original_key` limits do not silently reject a valid ID; NaN/INF are rejected while valid zero/positive timeout behavior remains. Any schema version changes only after complete verification. No backend operation commits/rolls back caller work; namespace survives blog/prefix changes; reconnect cannot silently imply retained ownership.
 - **Dependencies:** E1-01, E1-QA; D1/D2/D5/D6.
-- **Notes/Risks:** if full diagnostic text is demonstrated essential, return its DDL tradeoff to ADR review before implementing it.
+- **Notes/Risks:** if full diagnostic text is demonstrated essential, return its DDL tradeoff to ADR review before implementing it. B1 local directed checks and the existing suite passed; [E3-02 evidence](evidence/E3-02.md) records the accepted controlled-session snapshot clarification, exact checks, source boundaries, and limits. Required PR/merge delivery remains pending; E3-03 is not yet unblocked.
 
 ## E3-03. Acquire and release with the accepted protocol
 

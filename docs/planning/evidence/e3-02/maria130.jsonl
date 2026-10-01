@@ -1,0 +1,24 @@
+{"case":"read_only_values","pass":true}
+{"case":"install","pass":true}
+{"case":"snapshot_setting_rejection_if_exposed","pass":true}
+{"case":"invalid_schema_and_ddl_failure","pass":true}
+{"case":"strict_full_identity","pass":true}
+{"case":"finite_timeout","pass":true}
+{"case":"implicit_isolation_REPEATABLE READ","pass":true}
+{"case":"changed_isolation_refused_REPEATABLE READ","pass":true}
+{"case":"environment","data":{"version":"13.0.2-MariaDB-ubu2604","connection_id":"15","autocommit":"1","sql_mode":"STRICT_ALL_TABLES","php":"8.5.11","wordpress":"7.1.2","isolation":"REPEATABLE READ","engine":"InnoDB","caller_session":{"connection_id":"15","autocommit":"1","isolation":"REPEATABLE-READ","innodb_snapshot_isolation":"ON"},"controlled_session":{"connection_id":"21","autocommit":"1","isolation":"REPEATABLE-READ","innodb_snapshot_isolation":"OFF"}}}
+{"case":"first_acquirer_REPEATABLE READ","pass":true}
+{"case":"current_read_REPEATABLE READ","pass":true}
+{"case":"shared_readers_REPEATABLE READ","pass":true}
+{"case":"outer_transaction_namespace_and_tokens_REPEATABLE READ","pass":true}
+{"case":"lost_insert_and_commit_response_REPEATABLE READ","pass":true}
+{"case":"implicit_isolation_READ COMMITTED","pass":true}
+{"case":"changed_isolation_refused_READ COMMITTED","pass":true}
+{"case":"environment","data":{"version":"13.0.2-MariaDB-ubu2604","connection_id":"39","autocommit":"1","sql_mode":"STRICT_ALL_TABLES","php":"8.5.11","wordpress":"7.1.2","isolation":"READ COMMITTED","engine":"InnoDB","caller_session":{"connection_id":"39","autocommit":"1","isolation":"READ-COMMITTED","innodb_snapshot_isolation":"ON"},"controlled_session":{"connection_id":"45","autocommit":"1","isolation":"READ-COMMITTED","innodb_snapshot_isolation":"OFF"}}}
+{"case":"first_acquirer_READ COMMITTED","pass":true}
+{"case":"current_read_READ COMMITTED","pass":true}
+{"case":"shared_readers_READ COMMITTED","pass":true}
+{"case":"outer_transaction_namespace_and_tokens_READ COMMITTED","pass":true}
+{"case":"lost_insert_and_commit_response_READ COMMITTED","pass":true}
+{"case":"routing_and_reconnect_fail_closed","pass":true}
+{"case":"summary","data":{"pass":true,"php":"8.5.11","wordpress":"7.1.2"}}

@@ -39,8 +39,8 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 		float $blocking_timeout = self::DEFAULT_BLOCKING_TIMEOUT,
 		int $db_error_retries = self::DEFAULT_DB_ERROR_RETRIES
 	) {
-		if ( $blocking_timeout < 0 ) {
-			throw new \InvalidArgumentException( 'The blocking timeout cannot be negative.' );
+		if ( ! is_finite( $blocking_timeout ) || $blocking_timeout < 0 ) {
+			throw new \InvalidArgumentException( 'The blocking timeout must be finite and non-negative.' );
 		}
 
 		if ( $db_error_retries < 0 ) {
@@ -77,6 +77,26 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 	 */
 	private function get_lock_key( string $id ): string {
 		return md5( $id );
+	}
+
+	/** Store only a complete, representable diagnostic ID. The hash always uses the full ID. */
+	private function get_original_key( string $id ): ?string {
+		global $wpdb;
+
+		if ( preg_match( '/\A[\x00-\x7f]*\z/D', $id ) ) {
+			return strlen( $id ) <= 50 ? $id : null;
+		}
+
+		$charset = $wpdb->get_col_charset( $this->get_table_name(), 'original_key' );
+		if ( ! in_array( $charset, array( 'utf8', 'utf8mb3', 'utf8mb4' ), true ) || ! preg_match( '//u', $id ) ) {
+			return null;
+		}
+
+		if ( 'utf8mb4' !== $charset && preg_match( '/[\x{10000}-\x{10FFFF}]/u', $id ) ) {
+			return null;
+		}
+
+		return preg_match_all( '/./us', $id ) <= 50 ? $id : null;
 	}
 
 	/**
@@ -213,18 +233,22 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 
 		while ( true ) {
 			$lock_level = WP_Lock::READ === $level ? ' AND `level` > %d' : '';
+			$original_key = $this->get_original_key( $id );
+			$original_sql = null === $original_key ? 'NULL' : '%s';
 			$query      = "INSERT INTO {$this->get_table_name()} (`lock_key`, `original_key`, `level`, `pid`, `cid`, `expire`) " .
-				"SELECT %s, %s, %d, %d, CONNECTION_ID(), %f FROM dual " .
+				"SELECT %s, {$original_sql}, %d, %d, CONNECTION_ID(), %f FROM dual " .
 				"WHERE NOT EXISTS (SELECT 1 FROM {$this->get_table_name()} WHERE `lock_key` = %s{$lock_level} " .
 				'AND (`expire` = 0 OR `expire` >= %f))';
 			$query_args = [
 				$lock_key,
-				$id,
 				$level,
 				getmypid(),
 				$expiration ? $expiration + microtime( true ) : 0,
 				$lock_key,
 			];
+			if ( null !== $original_key ) {
+				array_splice( $query_args, 1, 0, [ $original_key ] );
+			}
 
 			if ( WP_Lock::READ === $level ) {
 				$query_args[] = $level;
