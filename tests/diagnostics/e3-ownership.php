@@ -179,6 +179,58 @@ function public_first_pair( string $isolation, int $level, int $expected ): void
 	}
 	check( 0 === count_owners( $id ), 'First-acquirer release left an owner.' );
 }
+function public_repeated_read_pair( string $isolation ): void {
+	global $wpdb;
+	$id = 'repeated-read-' . uniqid();
+	$seed = new WP_Lock( $id );
+	check( $seed->acquire( WP_Lock::READ, false, 0 ), 'Repeated-read resource setup failed.' );
+	$seed->release();
+	check( 0 === count_owners( $id ), 'Repeated-read resource setup release left an owner.' );
+	$children = array();
+	try {
+		foreach ( array( 0, 1 ) as $index ) {
+			$pair = stream_socket_pair( STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP );
+			check( false !== $pair, 'Repeated-read socket unavailable.' );
+			$pid = pcntl_fork();
+			check( -1 !== $pid, 'Repeated-read fork failed.' );
+			if ( 0 === $pid ) {
+				fclose( $pair[0] );
+				try {
+					$wpdb = connect( $isolation );
+					$connection = (int) $wpdb->get_var( 'SELECT CONNECTION_ID()' );
+					$lock = new WP_Lock( $id, new WP_Lock_Backend_DB( 5.0 ) );
+					fwrite( $pair[1], "ready\n" );
+					check( "go\n" === fgets( $pair[1] ), 'Repeated-read start signal missing.' );
+					for ( $attempt = 0; $attempt < 25; ++$attempt ) {
+						check( $lock->acquire( WP_Lock::READ, true, 0 ), 'Repeated-read acquisition failed at attempt ' . $attempt . '.' );
+						usleep( 1000 );
+						$lock->release();
+					}
+					fwrite( $pair[1], $connection . "\n" );
+					exit( 0 );
+				} catch ( Throwable $error ) {
+					e3_report_error( $error, 'Repeated-read child=' . $index . ' isolation=' . $isolation );
+					exit( 1 );
+				}
+			}
+			fclose( $pair[1] );
+			stream_set_timeout( $pair[0], 15 );
+			$children[] = array( $pid, $pair[0] );
+		}
+		foreach ( $children as $child ) { check( "ready\n" === fgets( $child[1] ), 'Repeated-read child was not ready.' ); }
+		foreach ( $children as $child ) { fwrite( $child[1], "go\n" ); }
+		$connections = array();
+		foreach ( $children as $child ) { $connections[] = (int) fgets( $child[1] ); }
+		check( $connections[0] > 0 && $connections[1] > 0 && $connections[0] !== $connections[1], 'Repeated readers did not use independent connections.' );
+	} finally {
+		foreach ( $children as $child ) {
+			fclose( $child[1] );
+			pcntl_waitpid( $child[0], $status );
+			check( pcntl_wifexited( $status ) && 0 === pcntl_wexitstatus( $status ), 'Repeated-read child failed.' );
+		}
+	}
+	check( 0 === count_owners( $id ), 'Repeated-read left an owner.' );
+}
 function public_lock_wait_retry( string $isolation ): void {
 	global $wpdb;
 	$id = 'lock-wait-' . uniqid();
@@ -342,6 +394,7 @@ try {
 		echo json_encode( array( 'case' => 'environment', 'isolation' => $actual, 'engine' => $engine, 'server' => $server, 'php' => PHP_VERSION, 'wordpress' => $wp_version ) ) . "\n";
 		case_ok( 'simultaneous_first_write_' . $isolation, function() use ( $isolation ) { public_first_pair( $isolation, WP_Lock::WRITE, 1 ); } );
 		case_ok( 'simultaneous_first_read_' . $isolation, function() use ( $isolation ) { public_first_pair( $isolation, WP_Lock::READ, 2 ); } );
+		case_ok( 'repeated_shared_read_' . $isolation, function() use ( $isolation ) { public_repeated_read_pair( $isolation ); } );
 		case_ok( 'real_lock_wait_retry_' . $isolation, function() use ( $isolation ) { public_lock_wait_retry( $isolation ); } );
 		case_ok( 'real_release_lock_wait_retry_' . $isolation, function() use ( $isolation ) { public_release_lock_wait_retry( $isolation ); } );
 		case_ok( 'shared_and_exclusive_' . $isolation, function() use ( $isolation ) {

@@ -355,7 +355,8 @@ final class WP_Lock_Foundations {
 		}
 		$key = md5( $id );
 		$table = self::quote( $this->namespace . self::RESOURCE_TABLE );
-		$this->checked( $this->db->prepare( "INSERT IGNORE INTO {$table} (lock_key) VALUES (%s)", $key ), false, 'resource-insert' );
+		// Take the exclusive duplicate-key lock before the locking read.
+		$this->checked( $this->db->prepare( "INSERT INTO {$table} (lock_key) VALUES (%s) ON DUPLICATE KEY UPDATE lock_key = lock_key", $key ), false, 'resource-insert' );
 		$rows = $this->checked( $this->db->prepare( "SELECT lock_key FROM {$table} WHERE lock_key = %s FOR UPDATE", $key ), true, 'resource-select' );
 		if ( 1 !== count( $rows ) || $key !== $rows[0]['lock_key'] ) {
 			throw new \RuntimeException( 'Resource row could not be locked.' );

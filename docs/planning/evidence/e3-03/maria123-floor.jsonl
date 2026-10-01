@@ -1,6 +1,7 @@
 {"case":"environment","isolation":"REPEATABLE READ","engine":"InnoDB","server":"12.3.3-MariaDB-ubu2404","php":"7.4.33","wordpress":"6.2.13"}
 {"case":"simultaneous_first_write_REPEATABLE READ","pass":true}
 {"case":"simultaneous_first_read_REPEATABLE READ","pass":true}
+{"case":"repeated_shared_read_REPEATABLE READ","pass":true}
 {"case":"real_lock_wait_retry_REPEATABLE READ","pass":true}
 {"case":"real_release_lock_wait_retry_REPEATABLE READ","pass":true}
 {"case":"shared_and_exclusive_REPEATABLE READ","pass":true}
@@ -15,6 +16,7 @@
 {"case":"environment","isolation":"READ COMMITTED","engine":"InnoDB","server":"12.3.3-MariaDB-ubu2404","php":"7.4.33","wordpress":"6.2.13"}
 {"case":"simultaneous_first_write_READ COMMITTED","pass":true}
 {"case":"simultaneous_first_read_READ COMMITTED","pass":true}
+{"case":"repeated_shared_read_READ COMMITTED","pass":true}
 {"case":"real_lock_wait_retry_READ COMMITTED","pass":true}
 {"case":"real_release_lock_wait_retry_READ COMMITTED","pass":true}
 {"case":"shared_and_exclusive_READ COMMITTED","pass":true}
