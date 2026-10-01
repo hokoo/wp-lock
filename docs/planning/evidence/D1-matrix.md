@@ -1,10 +1,10 @@
-# D1 target validation candidates — 2026-10-01
+# D1 accepted target validation matrix — 2026-10-01
 
-This is the B0 proposal for OWNER review, not an accepted release support matrix. The [E1-02 record](E1-02.md) is historical evidence for the **legacy 2.0 backend**: PHP 7.4.3, a WordPress 6.7 alpha source snapshot, MySQL 8.0.46 and MariaDB 10.11.10. The [new serial run](d1/manifest.md) adds six released-version configurations, with exact [JSONL results](d1/mysql267.jsonl) and hashes retained. Neither run tests the 3.0 protocol or makes WordPress `7.1-src` in the older CI a released version. OWNER has not accepted the proposed D1 matrix.
+OWNER accepted these six B0 validation targets and the future CI split on 2026-10-01; this is not an accepted release support matrix. The [E1-02 record](E1-02.md) is historical evidence for the **legacy 2.0 backend**: PHP 7.4.3, a WordPress 6.7 alpha source snapshot, MySQL 8.0.46 and MariaDB 10.11.10. The [new serial run](d1/manifest.md) adds six released-version configurations, with exact [JSONL results](d1/mysql267.jsonl) and hashes retained. Neither run tests the 3.0 protocol or makes WordPress `7.1-src` in the older CI a released version.
 
 ## Released candidates and smallest matrix
 
-| Track | Exact released candidate on 2026-10-01 | Proposed role and provenance note |
+| Track | Exact released candidate on 2026-10-01 | Validation role and provenance note |
 | --- | --- | --- |
 | PHP | [8.5.11, 2026-09-24](https://www.php.net/ChangeLog-8.php) | Newest stable reference; observed in the legacy diagnostic. PHP `>=7.4` remains the Composer constraint. |
 | WordPress | [7.1.2, 2026-09-22](https://wordpress.org/news/2026/09/wordpress-7-1-2-release/) | Newest stable source used by the partial `wpdb` bootstrap. The earlier `7.1-src` suite is a development snapshot. |
@@ -16,7 +16,7 @@ This is the B0 proposal for OWNER review, not an accepted release support matrix
 
 The serial diagnostic ran PHP 8.5.11 + WordPress 7.1.2 against all four database candidates and PHP 7.4.33 + WordPress 6.2.13 against the two LTS candidates, each at RR and RC. This small matrix samples current versions, both engine families, LTS behavior, and backward anchors without asserting a full Cartesian support range. The MySQL 8.0.46/MariaDB 10.11.10 results remain a historical comparison.
 
-## Observed legacy results and pending OWNER decision
+## Observed legacy results and accepted validation decision
 
 The exact [six JSONL files and provenance](d1/manifest.md) show these dual-acquisition counts in 100 rounds per case. Every RR WRITE/WRITE and READ/WRITE count was 0/100; READ/READ was 100/100 under both isolations for every row. Each row had zero pair SQL-error rounds and row mismatches, distinct independent connections, passing ordered owner/contender controls at RR and RC, a passing rollback defect reproduction, a passing finite-TTL/predecessor-release control, strict diagnostic-ID behavior, nullable `original_key` raw-SQL feasibility, and a final `pass=true` with no failures. Here, `pass` means **expected legacy RED findings and GREEN controls matched**, not safe RC acquisition.
 
@@ -29,7 +29,7 @@ The exact [six JSONL files and provenance](d1/manifest.md) show these dual-acqui
 | [mysql97-floor](d1/mysql97-floor.jsonl) | 7.4.33 / 6.2.13 / MySQL 9.7.2 | 0 / 0 | 100 / 98 | Confirmed sampled legacy controls and RC defect; target protocol untested |
 | [maria123-floor](d1/maria123-floor.jsonl) | 7.4.33 / 6.2.13 / MariaDB 12.3.3 | 0 / 0 | 87 / 98 | Confirmed sampled legacy controls and RC defect; target protocol untested |
 
-**Proposed D1 decision for OWNER, pending acceptance:** select these six exact configurations as B0 validation targets for E3/E4 and the mandatory E5 release-candidate gate. Require successful target-protocol shared READ/exclusive WRITE evidence at both RR and RC on each row before claiming support for that row. E3/E4 also need their directed ownership, transaction, deadline, recovery, and failure checks; E5 owns migration, full-suite/coverage, the final support claim, and OWNER acceptance. For continuous PR CI, propose the four current/floor LTS rows (`mysql97`, `maria123`, `mysql97-floor`, `maria123-floor`); run newest MySQL Innovation and MariaDB rolling rows periodically and again at the mandatory candidate gate. This B0 proposal does not alter the current PHP 7.4–8.3 CI or set a universal WordPress 6.2 floor. Add other combinations if observed failures or consumer risk require them. No B1 implementation is authorized by this proposal.
+**D1 decision accepted by OWNER, 2026-10-01:** these six exact configurations are mandatory validation targets for E3/E4 and the E5 release-candidate gate. Require successful target-protocol shared READ/exclusive WRITE evidence at both RR and RC on each row before claiming support for that row. E3/E4 also need their directed ownership, transaction, deadline, recovery, and failure checks; E5 owns migration, full-suite/coverage, the final support claim, and OWNER acceptance. Future regular PR CI uses the four current/floor LTS rows (`mysql97`, `maria123`, `mysql97-floor`, `maria123-floor`); newest MySQL Innovation and MariaDB rolling rows run periodically and again at the mandatory candidate gate. Current PHP 7.4–8.3 CI and the PHP `>=7.4` constraint remain. WordPress 6.2 is a backward anchor, not a universal support floor. Add other combinations if observed failures or consumer risk require them. This decision does not authorize B1 implementation.
 
 The target D2 capability checklist for later E3 feasibility is: primary InnoDB and unique permanent resource row; two first acquirers serialize; owner rows use a **current locking read** even after an RR snapshot; distinct READ owners coexist; independent connection and primary/schema identity survive caller rollback; captured namespace survives prefix/blog changes; attempt-token reconciliation after uncertain INSERT/COMMIT; fail closed on routing or connection uncertainty. B0's legacy diagnostic does **not** prove these. D3 manual recovery, deadlines/TTL, D5 switching, and D6 diagnostics likewise need their assigned later directed tests.
 

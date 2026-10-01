@@ -21,7 +21,7 @@
 - **DoD:** DoD-D; ADR compares viable alternatives, records decisions and tests/feasibility evidence, and is reviewed and merged before dependent implementation.
 - **AC:** require real READ/WRITE acquisition on supported RR/RC in the target protocol; explain empty-resource and conflict serialization, stale RR snapshots, caller rollback/deadlock/reconnect, known and uncertain commits, release/cleanup, namespace changes, time/error/recovery results, safe switching and rollback. Retain existing `insert_id` identity, wrapper held lifecycle, and tests where compatible; justify any new token, connection, table, or abstraction by chosen protocol or uncertainty. D3 uses conservative TTL=0 and verified manual recovery without distributed PID/CID liveness. D6 first tests bounded/nullable diagnostic `original_key` against strict mode, Unicode, and shared prefixes while existing full-ID key derivation remains; require TEXT/DDL only on demonstrated need. No blanket RC refusal or speculative renewal machinery.
 - **Dependencies:** none known; OWNER acceptance is part of delivery.
-- **Notes/Risks:** D1's target validation matrix remains an empirical B0/OWNER gate; D2 feasibility and later D3/D5/D6 verification are open. D4 remains deferred ISSUE-012.
+- **Notes/Risks:** OWNER accepted D1's six empirical validation targets on 2026-10-01; D2 feasibility and later D3/D5/D6 verification are open. D4 remains deferred ISSUE-012.
 
 ## E1-02. Focused trustworthy diagnostic baseline
 
@@ -39,9 +39,11 @@
 
 **D1 evidence — 2026-10-01:** the [six-row proposal and result table](evidence/D1-matrix.md) links the exact [JSONL and provenance manifest](evidence/d1/manifest.md) from one serial disposable-database run at HEAD `6086416` plus identified uncommitted harness/doc changes. All six diagnostics exited 0 with expected legacy RC conflicts, sampled RR and READ/READ controls, and no recorded failures. This partial WordPress `wpdb` bootstrap is separate from the earlier existing-suite result and supplies no target-protocol or release support evidence. OWNER acceptance of the six-row validation targets and future CI shape, independent E1-QA, and review/merge remain open; task statuses above are unchanged.
 
+**D1 acceptance — 2026-10-01:** OWNER accepted the [six exact RR/RC validation targets and future CI split](evidence/D1-matrix.md). The serial legacy evidence is retained in the [manifest](evidence/d1/manifest.md). At frozen revision `17c610a`, the existing CI had 12 green checks in runs `36873689653` and `36873685502`; this is prior CI evidence, not a new runtime check or target-protocol result. E1-01 and E1-02 remain `review` until B0 review/merge; E1-QA is ready for independent premerge review. Final release support and later feasibility/rehearsal gates remain open.
+
 ## E1-QA. Independent contract and evidence review
 
-- **Status:** waiting_dependency. **Owner:** QA. **Priority:** P0. **Batch:** B0.
+- **Status:** todo. **Owner:** QA. **Priority:** P0. **Batch:** B0.
 - **Goal:** accept a usable contract and diagnostic baseline.
 - **Scope:** ADR, tests, source mapping, environment and isolation evidence, exact revision, and evidence limits.
 - **Out of Scope:** treating current backend as fixed or running production migration.
