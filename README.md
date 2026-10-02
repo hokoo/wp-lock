@@ -13,6 +13,8 @@ See the [project roadmap](ROADMAP.md) for planned versions, [known issues](docs/
 - PHP 7.4 or newer (the Composer constraint; PHP 7.4 itself is upstream end-of-life)
 - WordPress with a MySQL-compatible database
 
+The bundled database backend requires the global `$wpdb` to be the stock WordPress core `wpdb` class and its independent session to be verifiably routed to the same writable primary. It refuses every `wpdb` subclass, including subclasses commonly supplied by database drop-ins; the presence of a `db.php` file alone is not the rejection condition. Unverified proxies or custom routing do not gain support from the six validation configurations below. Sites requiring another routing model can provide a [custom backend](#custom-backends).
+
 The 3.0 protocol passed the full local native suite at both REPEATABLE READ and READ COMMITTED on these **six exact validation configurations**, not every PHP/WordPress/database combination: PHP 8.5.11 + WordPress 7.1.2 with MySQL 26.7.0 or 9.7.2 and MariaDB 13.0.2 or 12.3.3; PHP 7.4.33 + WordPress 6.2.13 with MySQL 9.7.2 or MariaDB 12.3.3. WordPress 6.2.13 is a backward anchor, not a universal floor. See the [matrix evidence](docs/planning/evidence/E5-02.md); final candidate and remote CI acceptance remain release gates.
 
 Directed [ownership](docs/planning/evidence/E3-03.md), [lease timing](docs/planning/evidence/E4-02.md), and [recovery](docs/planning/evidence/E4-03.md) evidence supports the bundled-backend behavior below; sampled runs cannot prove every schedule safe.

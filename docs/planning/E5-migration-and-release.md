@@ -39,7 +39,7 @@
 
 ## E5-03. User and operator documentation
 
-- **Status:** completed. **Owner:** DO. **Priority:** P1. **Batch:** B4.
+- **Status:** review. **Owner:** DO. **Priority:** P1. **Batch:** B4.
 - **Goal:** give consumers accurate usage boundaries and migration instructions.
 - **Scope:** README/CHANGELOG, examples, error/lost-ownership behavior, TTL=0, metadata cache, resource keys, environment matrix, upgrade/rollback, and custom-backend compatibility; explain transactional/idempotent accounting boundaries without implementing an application.
 - **Out of Scope:** exactly-once external effects or designing a consumer payment system.
@@ -63,7 +63,7 @@
 
 ## E5-QA. Independent final acceptance
 
-- **Status:** waiting_dependency. **Owner:** QA. **Priority:** P0. **Batch:** B5.
+- **Status:** review. **Owner:** QA. **Priority:** P0. **Batch:** B5.
 - **Goal:** accept the actual deliverable, including migration and documentation.
 - **Scope:** E5 AC, upstream epic state, exact candidate, package smoke, CI evidence, and directed repetition of high-risk migration/failure/rollback paths.
 - **Out of Scope:** deployment or repeating sufficient checks without a concrete reason.
