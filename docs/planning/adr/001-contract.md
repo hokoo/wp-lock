@@ -4,7 +4,7 @@
 **Date:** 2026-09-29. **Task:** [E1-01](../E1-contract-and-tests.md#e1-01-one-contract-and-protocol-adr).
 **Decision scope:** D1, D2, D3, D5, D6. D4 renewal remains [deferred](../../issues/README.md#issue-012).
 
-**Delivery evidence update (2026-10-02):** Statements below that describe implementation or rehearsal as pending record the ADR's original state; they do not revise its accepted decisions. [E3 independent QA passed with notes](../qa/E3.md). The later [E4 repair matrix and native evidence](../evidence/e4-repair/manifest.md) includes a disposable manual-recovery rehearsal, but the [initial E4 QA failure](../qa/E4.md#initial-gate--2026-10-02) remains the current gate until the repair is reviewed, merged, and given fresh independent QA. E5 migration, rollback, and final release support remain pending.
+**Delivery evidence update (2026-10-02):** Statements below that describe implementation or rehearsal as pending record the ADR's original state; they do not revise its accepted decisions. [E3 independent QA passed with notes](../qa/E3.md). The later [E4 repair matrix and native evidence](../evidence/e4-repair/manifest.md) includes a disposable manual-recovery rehearsal, and the reviewed repair is delivered in [PR #12](https://github.com/hokoo/wp-lock/pull/12), with fresh independent [E4-QA passing with notes](../qa/E4.md#final-delivery--2026-10-02). The initial failed QA boundary remains recorded. E5 migration, rollback, and final release support remain pending.
 
 ## Evidence and constraints
 

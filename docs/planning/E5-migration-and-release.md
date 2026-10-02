@@ -15,7 +15,7 @@
 
 ## E5-01. Implement and rehearse upgrade/rollback
 
-- **Status:** waiting_dependency. **Owner:** DEV + DO. **Priority:** P1. **Batch:** B4.
+- **Status:** todo. **Owner:** DEV + DO. **Priority:** P1. **Batch:** B4.
 - **Goal:** switch protocols without allowing independent incompatible owners.
 - **Scope:** accepted migration/install hooks, complete schema verification, stopping new acquisitions, owner drain and TTL=0 resolution, clean install/upgrade/partial failure/rollback rehearsals on temporary databases.
 - **Out of Scope:** production switching or deleting unknown active owners.
@@ -27,7 +27,7 @@
 
 ## E5-02. Required CI matrix and coverage
 
-- **Status:** waiting_dependency. **Owner:** TEST. **Priority:** P1. **Batch:** B4.
+- **Status:** todo. **Owner:** TEST. **Priority:** P1. **Batch:** B4.
 - **Goal:** ownership regressions block delivery on supported configurations.
 - **Scope:** workflow and test helpers/configuration; retain D1 PHP coverage, add MySQL/MariaDB × RR/RC checks, required process-control preflight, deadlines/evidence capture, and the current >=90% coverage gate.
 - **Out of Scope:** an unjustified full PHP/WP/DB Cartesian product and independent load benchmarking.
