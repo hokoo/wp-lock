@@ -4,7 +4,7 @@
  * Description: Concurrency locks for WordPress.
  * Author: Gennady Kovshenin
  * Author URI: https://codeseekah.com
- * Version: 2.0.0
+ * Version: 3.0.0
  * Plugin URI: https://github.com/hokoo/wp-lock
  * Requires PHP: 7.4
  * License: MIT
