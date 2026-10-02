@@ -1,5 +1,5 @@
 <?php
-/** E3-03 public protocol diagnostic. Run only on the disposable wp_lock_e1 socket. */
+/** E3 public protocol diagnostic. Run only on the disposable wp_lock_e1 socket. */
 if ( ! extension_loaded( 'mysqli' ) || ! function_exists( 'pcntl_fork' ) || ! function_exists( 'pcntl_waitpid' ) || ! function_exists( 'posix_kill' ) ) {
 	fwrite( STDERR, "mysqli, PCNTL and POSIX are required.\n" );
 	exit( 2 );
@@ -551,6 +551,10 @@ try {
 			check( 1 === count_owners( $id ) && $new->lock_exists(), 'Stale release removed successor.' );
 			$new->release();
 		} );
+		if ( defined( 'WP_LOCK_E4_DIAGNOSTIC' ) ) {
+			require __DIR__ . '/e4-timing-cases.php';
+		}
+
 	}
 	echo json_encode( array( 'case' => 'summary', 'pass' => true, 'php' => PHP_VERSION, 'wordpress' => $wp_version ) ) . "\n";
 	exit( 0 );

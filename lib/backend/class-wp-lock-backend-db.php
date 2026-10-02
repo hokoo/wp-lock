@@ -6,6 +6,7 @@ use iTRON\WP_Lock\helpers\Database;
 
 class WP_Lock_Ownership_Uncertain extends \RuntimeException {}
 class WP_Lock_Ownership_Lost extends \RuntimeException {}
+class WP_Lock_Wait_Expired extends \RuntimeException {}
 
 class WP_Lock_Backend_DB implements WP_Lock_Backend {
 	const TABLE_NAME = 'lock';
@@ -149,7 +150,10 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 			$deleted = false;
 			foreach ( $session->current_owners( $lock_id ) as $owner ) {
 				if ( 0.0 !== (float) $owner['expire'] && (float) $owner['expire'] <= $now ) {
-					$deleted = 1 === $session->delete_owner( $lock_id, (int) $owner['id'], $owner['attempt_token'] ) || $deleted;
+					if ( 1 !== $session->delete_owner( $lock_id, (int) $owner['id'], $owner['attempt_token'] ) ) {
+						throw new \RuntimeException( 'The expired lock owner could not be deleted.' );
+					}
+					$deleted = true;
 				}
 			}
 			$session->commit();
@@ -191,10 +195,20 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 
 		$started = hrtime( true );
 		$deadline = $started + (int) min( PHP_INT_MAX - $started, $this->blocking_timeout * 1000000000 );
+		$timed_wait = $blocking && $this->blocking_timeout > 0;
+		$wait_guard = $timed_wait ? function() use ( $deadline ) {
+			if ( hrtime( true ) >= $deadline ) {
+				throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
+			}
+		} : null;
 		$errors = 0;
+		$last_error = null;
 		$attempted = false;
 		while ( true ) {
 			if ( $attempted && ( ! $blocking || hrtime( true ) >= $deadline ) ) {
+				if ( null !== $last_error ) {
+					throw new \RuntimeException( 'Unable to acquire lock because of a database error.', 0, $last_error );
+				}
 				return false;
 			}
 			$attempted = true;
@@ -202,40 +216,80 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 			$token = null;
 			$commit_started = false;
 			try {
-				$session = WP_Lock_Foundations::open();
+				$session = WP_Lock_Foundations::open( null, $wait_guard );
 				$namespace = WP_Lock_Foundations::namespace();
+				if ( $timed_wait && hrtime( true ) >= $deadline ) {
+					throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
+				}
 				$session->begin_resource( $id );
+				if ( $timed_wait && hrtime( true ) >= $deadline ) {
+					throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
+				}
 				$now = $session->now();
+				if ( $timed_wait && hrtime( true ) >= $deadline ) {
+					throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
+				}
 				$conflict = false;
 				foreach ( $session->current_owners( $id ) as $owner ) {
+					if ( $timed_wait && hrtime( true ) >= $deadline ) {
+						throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
+					}
 					if ( 0.0 !== (float) $owner['expire'] && (float) $owner['expire'] <= $now ) {
 						$session->delete_owner( $id, (int) $owner['id'], $owner['attempt_token'] );
+						if ( $timed_wait && hrtime( true ) >= $deadline ) {
+							throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
+						}
 					} elseif ( WP_Lock::WRITE === $level || WP_Lock::WRITE === (int) $owner['level'] ) {
 						$conflict = true;
 					}
 				}
 				if ( $conflict ) {
 					$session->rollback();
+					$last_error = null;
 					if ( ! $blocking || hrtime( true ) >= $deadline ) {
 						return false;
 					}
 					usleep( min( self::POLL_INTERVAL_MICROSECONDS, (int) max( 0, ( $deadline - hrtime( true ) ) / 1000 ) ) );
 					continue;
 				}
+				if ( $timed_wait && hrtime( true ) >= $deadline ) {
+					throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
+				}
 				$token = WP_Lock_Foundations::new_token();
 				$expire = $expiration ? $session->now() + $expiration : 0.0;
-				$owner_id = $session->insert_owner( $id, $level, $token, $expire, $this->get_original_key( $id ) );
+				if ( $timed_wait && hrtime( true ) >= $deadline ) {
+					throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
+				}
+				$original_key = $this->get_original_key( $id );
+				if ( null !== $wait_guard ) {
+					$wait_guard();
+				}
+				$owner_id = $session->insert_owner( $id, $level, $token, $expire, $original_key );
 				$commit_started = true;
 				$session->commit();
 				// A committed owner is retained until its exact cleanup is confirmed.
 				$this->unresolved[ $key ] = array( 'namespace' => $namespace, 'token' => $token );
-				if ( ( $expiration && $session->now() >= $expire ) || ( $blocking && $this->blocking_timeout > 0 && hrtime( true ) >= $deadline ) ) {
+				if ( ( $expiration && $session->now() >= $expire ) || ( $timed_wait && hrtime( true ) >= $deadline ) ) {
 					$this->reconcile( $id, $key );
 					return false;
 				}
 				unset( $this->unresolved[ $key ] );
 				$this->lock_ids[ $key ] = array( 'id' => $owner_id, 'token' => $token, 'namespace' => $namespace );
 				return true;
+			} catch ( WP_Lock_Wait_Expired $error ) {
+				if ( null !== $session ) {
+					try {
+						$session->rollback();
+					} catch ( \LogicException $rollback_error ) {
+						// The budget expired before START TRANSACTION.
+					} catch ( \Throwable $rollback_error ) {
+						throw new WP_Lock_Ownership_Uncertain( 'Lock rollback could not be confirmed.', 0, $rollback_error );
+					}
+				}
+				if ( null !== $last_error ) {
+					throw new \RuntimeException( 'Unable to acquire lock because of a database error.', 0, $last_error );
+				}
+				return false;
 			} catch ( WP_Lock_Ownership_Uncertain $error ) {
 				if ( null !== $token ) {
 					$this->unresolved[ $key ] = array( 'namespace' => $namespace, 'token' => $token );
@@ -261,10 +315,14 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 				if ( $error instanceof \InvalidArgumentException || $error instanceof \LogicException ) {
 					throw $error;
 				}
+				$last_error = $error;
 				if ( $errors++ >= $this->db_error_retries || ! $blocking || hrtime( true ) >= $deadline ) {
 					throw new \RuntimeException( 'Unable to acquire lock because of a database error.', 0, $error );
 				}
-				usleep( min( self::POLL_INTERVAL_MICROSECONDS * $errors, 100000 ) );
+				usleep( min( self::POLL_INTERVAL_MICROSECONDS * $errors, 100000, (int) max( 0, ( $deadline - hrtime( true ) ) / 1000 ) ) );
+				if ( hrtime( true ) >= $deadline ) {
+					throw new \RuntimeException( 'Unable to acquire lock because of a database error.', 0, $error );
+				}
 			} finally {
 				if ( null !== $session ) {
 					$session->close();
@@ -315,9 +373,11 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 			try {
 				$session->begin_resource( $id );
 				$found = $session->find_attempt( $id, $owner['token'] );
-				if ( ! $found || (int) $found[0]['id'] !== $owner['id'] ) {
+				$missing = ! $found || (int) $found[0]['id'] !== $owner['id'];
+				$expired = ! $missing && 0.0 !== (float) $found[0]['expire'] && (float) $found[0]['expire'] <= $session->now();
+				if ( $missing || $expired ) {
 					$session->rollback();
-					if ( ! empty( $owner['release_uncertain'] ) ) {
+					if ( $missing && ! empty( $owner['release_uncertain'] ) ) {
 						unset( $this->lock_ids[ $key ] );
 						return true;
 					}

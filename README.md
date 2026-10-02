@@ -65,9 +65,11 @@ Only these exact integer constants are accepted. Numeric strings and other value
 
 ### Blocking and database retries
 
-The bundled database backend polls for at most 30 seconds by default when `$blocking` is `true`. This wait limit is separate from the acquired lock's expiration. Non-blocking acquisition does not wait.
+The bundled database backend uses a monotonic 30-second wait budget by default when `$blocking` is `true`. Contention polling and database-error retries share that budget. A zero budget or non-blocking call makes one database acquisition attempt without polling. A synchronous database call can finish after the budget, so this is not a hard wall-clock return limit. The wait budget is separate from the acquired lock's expiration.
 
 Failed acquisition queries are retried up to three times after the initial query. A persistent database error throws `RuntimeException`; contention itself returns `false` and is not treated as a database error.
+
+If a committed acquisition finishes after a positive wait budget, the backend returns `false` only after confirming deletion of that exact owner. An unknown commit or failed cleanup raises `WP_Lock_Ownership_Uncertain`; keep the lock object and call `release()` to reconcile it.
 
 The database backend settings can be customized explicitly:
 
@@ -92,7 +94,9 @@ Resource identity uses the MD5 of the complete string ID. The optional `original
 - `0` means no TTL; the lock remains until explicitly released or manually recovered after stopping all participants.
 - The value must be a non-negative integer.
 
-Use `try`/`finally` and release every acquired lock. Choose a finite TTL longer than the maximum expected duration of the protected work, with margin for scheduling and database delays. Expiry cannot fence a stalled caller's application writes.
+Use `try`/`finally` and release every acquired lock. The primary database clock starts a finite lease after the resource row is locked. A successful `acquire()` means the lease had remaining TTL at the last database-time check after commit; it does not guarantee the lease will still exist after a later PHP pause. Choose a finite TTL longer than the maximum expected duration of the protected work, with margin for scheduling and database delays. Expiry cannot fence a stalled caller's application writes. A later `release()` that observes expiry reports `WP_Lock_Ownership_Lost` and clears the confirmed handle.
+
+If a TTL=0 owner survives its operation and cannot be reconciled with the same lock object, follow the [manual recovery procedure](docs/recovery.md) with an admissions barrier and verified owner termination. Failed visibility or PID/CID checks do not prove that a row is stale. The backend's expired-owner cleanup applies only to finite TTL rows.
 
 ### Checking lock existence
 

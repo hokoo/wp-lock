@@ -2,7 +2,7 @@
 
 The root [ROADMAP.md](../../ROADMAP.md) owns versions and release scope. This directory contains execution contracts, not another release schedule. The [issue register](../issues/README.md) records findings; the [audit](../review-2026-09-29/assessment.md) provides research evidence.
 
-There are **four mandatory epics and 15 tasks** for one planned 3.0.0 release, including four independent QA tasks. B0–B2 are complete, including [E3-QA](qa/E3.md) with `pass_with_notes`. B3 is newly unblocked but unauthorized; B3–B5 have not started. OWNER authorized B1 and B2 execution on 2026-10-01. Renewal is deferred as ISSUE-012 without a version or task breakdown.
+There are **four mandatory epics and 15 tasks** for one planned 3.0.0 release, including four independent QA tasks. B0–B2 are complete, including [E3-QA](qa/E3.md) with `pass_with_notes`. OWNER authorized B3 execution and accepted E4's root model on 2026-10-02; B3 is in integrated verification on `batch/b3`; E4-01–03 are in review. B4–B5 have not started and remain unauthorized. OWNER authorized B1 and B2 execution on 2026-10-01. Renewal is deferred as ISSUE-012 without a version or task breakdown.
 
 ## Navigation
 
@@ -31,6 +31,11 @@ E1-01 prepares **one** [ADR](adr/001-contract.md) covering supported contracts, 
 Preserve existing `insert_id` owner identity, wrapper held lifecycle, and tests where compatible. [B0's final E1-QA gate passed](qa/E1.md#final-delivery--2026-10-01), and [E3-QA passed with notes](qa/E3.md); the final release support matrix awaits E4–E5 evidence. OWNER separately authorized B1 and B2 execution on 2026-10-01.
 
 ## Common task contracts
+
+**Epic DoR:** before starting an epic, record the exact user-selected root AI model identifier in that epic's header as `**Root model:** <model identifier>`. An unset root model leaves the epic unready for execution even when its task dependencies are satisfied. Recording the model does not authorize execution.
+An epic's recommended model is advice and does not satisfy this selection requirement.
+
+**Model selection — 2026-10-02:** OWNER accepted the recommendations: E4 uses `gpt-6-astra`; E5 uses `gpt-6.1-sol`. B3 execution is already authorized. E5 model selection does not authorize B4–B5 or satisfy their E4 dependency.
 
 **Statuses:** `todo` means DoR is satisfied; `needs_design` means a material decision is missing; `waiting_dependency` means scope is known but a named upstream artifact or gate is pending; `review` means work exists but verification/delivery remains; `completed` means AC/DoD and delivery are met. Actual task states are recorded in each epic.
 
