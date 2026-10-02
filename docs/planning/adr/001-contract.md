@@ -4,6 +4,8 @@
 **Date:** 2026-09-29. **Task:** [E1-01](../E1-contract-and-tests.md#e1-01-one-contract-and-protocol-adr).
 **Decision scope:** D1, D2, D3, D5, D6. D4 renewal remains [deferred](../../issues/README.md#issue-012).
 
+**Delivery evidence update (2026-10-02):** Statements below that describe implementation or rehearsal as pending record the ADR's original state; they do not revise its accepted decisions. [E3 independent QA passed with notes](../qa/E3.md). The later [E4 repair matrix and native evidence](../evidence/e4-repair/manifest.md) includes a disposable manual-recovery rehearsal, but the [initial E4 QA failure](../qa/E4.md#initial-gate--2026-10-02) remains the current gate until the repair is reviewed, merged, and given fresh independent QA. E5 migration, rollback, and final release support remain pending.
+
 ## Evidence and constraints
 
 The [audit](../../review-2026-09-29/assessment.md) ran the unmodified 2.0 backend with independent PHP processes and connections, InnoDB, WordPress 6.2, PHP 7.4.3, MySQL 8.0.46, and MariaDB 10.11.10. It observed simultaneous conflicting owners under READ COMMITTED, but none in its sampled REPEATABLE READ runs. It also reproduced caller `ROLLBACK` removing a lock, acquisition returning an already expired lease after slow SQL, a database error appearing as absence, and strict-mode rejection of a 51-character resource ID. These are observations about 2.0, not proof of a replacement. The separate existing-suite run used PHP 8.3.33, WordPress 7.1-src, and MariaDB 10.11.10; 51 tests / 140 assertions passed despite the audit findings. The [current CI](../../../.github/workflows/phpunit.yml) exercises PHP 7.4–8.3 with WordPress 7.1 and MariaDB only. No target-protocol, full matrix, drop-in, or migration run has occurred.

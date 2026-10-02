@@ -15,7 +15,7 @@
 
 ## E4-01. Lease time and lost ownership
 
-- **Status:** review. **Owner:** DEV. **Priority:** P1. **Batch:** B3.
+- **Status:** completed. **Owner:** DEV. **Priority:** P1. **Batch:** B3.
 - **Goal:** grant a usable lease under the accepted time source and report observed loss.
 - **Scope:** authoritative time per ADR, start after required serialization, remaining-TTL check before success, expiry/takeover, PHP held state, and directed slow-SQL/clock tests.
 - **Out of Scope:** renewal or protecting arbitrary application writes after expiry.
@@ -27,7 +27,7 @@
 
 ## E4-02. Finite deadline, retry, and late outcomes
 
-- **Status:** review. **Owner:** DEV. **Priority:** P1. **Batch:** B3.
+- **Status:** completed. **Owner:** DEV. **Priority:** P1. **Batch:** B3.
 - **Goal:** make every retry path honor the defined waiting budget and ownership result.
 - **Scope:** monotonic elapsed budget, checks around SQL and retries, finite inputs, contention/error distinction, late success and cleanup, and directed faults.
 - **Out of Scope:** a hard wall-clock SLA unsupported by the DB driver.
