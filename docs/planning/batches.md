@@ -202,6 +202,8 @@ A `pass_with_notes` gate permits only nonblocking notes after every required cri
 
 **E5 compatibility disclosure repair accepted — 2026-10-02:** fresh bounded worker `/root/b5_wpdb_docs_repair` added one README requirement paragraph naming stock core `wpdb`, verified writable-primary routing, blanket subclass refusal and unverified proxy/custom-routing limits, with the existing custom-backend link. Code/ADR/E3 evidence, anchor and whitespace checks passed; root accepted the stopped one-file diff. No source behavior, supported provider or schema changed. Next: commit/refreeze all tracked candidate contents, package smoke and exact-head CI, repair PR delivery and a fresh independent QA pass.
 
+**B5 documentation repair / refreeze checkpoint — 2026-10-02:** fresh worker supplied the one-paragraph README compatibility correction; root reviewed and committed frozen `84a528d`. Fresh monitor verified all 140 Composer-installed files, held-owner RR/RC package smoke, zero final owners and cleanup. Exact candidate [CI 37027168271](https://github.com/hokoo/wp-lock/actions/runs/37027168271) passed all 12 jobs/12 native suites (107 tests/488 assertions/zero skips), coverage 610/657 (92.85%). [E5-04 manifest](evidence/E5-04.md#repaired-candidate-freeze--2026-10-02) names hashes and retained artifacts. Root authors only concise evidence bookkeeping here. E5-03/04/QA stay `review`; next: report-only checks, repair PR #16 merge, fresh independent QA.
+
 ## Transition rules
 
 1. Pull only tasks whose DoR and dependencies are met. Scheduling a batch does not approve a pending ADR choice.
