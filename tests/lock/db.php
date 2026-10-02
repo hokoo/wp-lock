@@ -16,6 +16,7 @@ class WP_Lock_Backend_DB_UnitTestCase extends WP_UnitTestCase {
 		WP_Lock_Backend_DB::maybe_upgrade_schema( true );
 		WP_Lock_Foundations::prepare_schema();
 		$this->delete_all_locks();
+		WP_Lock_Foundations::switch_protocol( WP_Lock_Foundations::PROTOCOL_VERSION );
 	}
 
 	protected function tearDown(): void {
@@ -1267,6 +1268,64 @@ class WP_Lock_Backend_DB_UnitTestCase extends WP_UnitTestCase {
 		$this->assertSame( $before, get_option( WP_Lock_Foundations::SCHEMA_OPTION ) );
 	}
 
+	public function test_protocol_switch_refuses_unresolved_owner_and_disables_new_acquisition(): void {
+		global $wpdb;
+		$id = uniqid( 'migration_owner_', true );
+		$owner = new WP_Lock_Backend_DB( 0, 0 );
+		$this->assertTrue( $owner->acquire( $id, WP_Lock::WRITE, false, 0 ) );
+		try {
+			WP_Lock_Foundations::switch_protocol( '2.0.0' );
+			$this->fail( 'An indefinite owner must block rollback.' );
+		} catch ( RuntimeException $error ) {
+			$this->assertStringContainsString( 'owners remain', $error->getMessage() );
+		}
+		$this->assertTrue( $owner->release( $id ) );
+		WP_Lock_Foundations::switch_protocol( '2.0.0' );
+		$this->assertSame( '2.0.0', $wpdb->get_var( $wpdb->prepare(
+			"SELECT option_value FROM `{$wpdb->prefix}options` WHERE option_name = %s",
+			WP_Lock_Foundations::PROTOCOL_OPTION
+		) ) );
+		try {
+			( new WP_Lock_Backend_DB( 0, 0 ) )->acquire( $id, WP_Lock::WRITE, false, 0 );
+			$this->fail( 'A disabled protocol must not grant ownership.' );
+		} catch ( RuntimeException $error ) {
+			$this->assertStringContainsString( 'database error', $error->getMessage() );
+			$this->assertStringContainsString( 'disabled', $error->getPrevious()->getMessage() );
+		} finally {
+			WP_Lock_Foundations::switch_protocol( WP_Lock_Foundations::PROTOCOL_VERSION );
+		}
+		$this->assertSame( 0, $this->count_owners( $id ) );
+	}
+
+	public function test_protocol_switch_refuses_non_null_legacy_token_default(): void {
+		global $wpdb;
+		$table = $wpdb->prefix . WP_Lock_Backend_DB::TABLE_NAME;
+		update_option( WP_Lock_Foundations::SCHEMA_OPTION, 'unverified', false );
+		$this->assertFalse( false === $wpdb->query( "ALTER TABLE `{$table}` MODIFY attempt_token char(32) DEFAULT 'reused'" ) );
+		try {
+			try {
+				WP_Lock_Foundations::prepare_schema();
+				$this->fail( 'Invalid legacy token default must block schema-version advancement.' );
+			} catch ( RuntimeException $error ) {
+				$this->assertStringContainsString( 'column verification failed', $error->getMessage() );
+			}
+			$this->assertSame( 'unverified', get_option( WP_Lock_Foundations::SCHEMA_OPTION ) );
+			WP_Lock_Foundations::switch_protocol( WP_Lock_Foundations::PROTOCOL_VERSION );
+			$this->fail( 'A token default incompatible with old inserts must block switching.' );
+		} catch ( RuntimeException $error ) {
+			$this->assertStringContainsString( 'column verification failed', $error->getMessage() );
+		} finally {
+			try {
+				( new WP_Lock_Backend_DB( 0, 0 ) )->acquire( 'invalid-default', WP_Lock::WRITE, false, 0 );
+				$this->fail( 'Active marker must not bypass current schema validation.' );
+			} catch ( RuntimeException $error ) {
+				$this->assertStringContainsString( 'database error', $error->getMessage() );
+			}
+			$wpdb->query( "ALTER TABLE `{$table}` MODIFY attempt_token char(32) DEFAULT NULL" );
+			WP_Lock_Foundations::prepare_schema();
+		}
+	}
+
 	public function test_foundation_schema_marker_must_be_read_back(): void {
 		$injected = false;
 		$filter = function( $query ) use ( &$injected, &$filter ) {
@@ -1304,6 +1363,33 @@ class WP_Lock_Backend_DB_UnitTestCase extends WP_UnitTestCase {
 		}
 		$this->assertTrue( $injected );
 		$this->assertSame( 0, $this->count_owners( $id ) );
+	}
+
+	/** @dataProvider unsupported_isolations */
+	public function test_unsupported_isolation_refuses_acquisition( string $unsupported ): void {
+		global $wpdb;
+		$original = $wpdb->get_var( "SHOW SESSION VARIABLES LIKE 'transaction_isolation'", 1 );
+		if ( null === $original ) {
+			$original = $wpdb->get_var( "SHOW SESSION VARIABLES LIKE 'tx_isolation'", 1 );
+		}
+		$original = str_replace( '-', ' ', strtoupper( (string) $original ) );
+		$this->assertContains( $original, array( 'REPEATABLE READ', 'READ COMMITTED' ) );
+		$this->assertFalse( false === $wpdb->query( 'SET SESSION TRANSACTION ISOLATION LEVEL ' . $unsupported ) );
+		try {
+			( new WP_Lock_Backend_DB( 0, 0 ) )->acquire( uniqid( 'unsupported_isolation_', true ), WP_Lock::WRITE, false, 0 );
+			$this->fail( 'Unsupported isolation must not grant ownership.' );
+		} catch ( RuntimeException $error ) {
+			$this->assertStringContainsString( 'database error', $error->getMessage() );
+		} finally {
+			$wpdb->query( 'SET SESSION TRANSACTION ISOLATION LEVEL ' . $original );
+		}
+	}
+
+	public function unsupported_isolations(): array {
+		return array(
+			'read uncommitted' => array( 'READ UNCOMMITTED' ),
+			'serializable' => array( 'SERIALIZABLE' ),
+		);
 	}
 
 	public function test_snapshot_isolation_inspection_error_refuses_acquisition_without_committing_caller_work(): void {

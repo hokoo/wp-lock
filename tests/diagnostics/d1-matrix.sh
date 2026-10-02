@@ -9,7 +9,14 @@ printf 'D1 artifacts: %s\n' "$out"
 mkdir -p "$out/build" "$out/source" "$out/logs"
 docker_bin=${D1_DOCKER:-docker}
 diagnostic=${D1_DIAGNOSTIC_SCRIPT:-tests/diagnostics/e1-baseline.php}
-[[ "$diagnostic" == tests/diagnostics/e1-baseline.php || "$diagnostic" == tests/diagnostics/e3-foundations.php || "$diagnostic" == tests/diagnostics/e3-ownership.php || "$diagnostic" == tests/diagnostics/e4-timing.php ]] || { printf 'Unsupported diagnostic path\n' >&2; exit 2; }
+[[ "$diagnostic" == tests/diagnostics/e1-baseline.php || "$diagnostic" == tests/diagnostics/e3-foundations.php || "$diagnostic" == tests/diagnostics/e3-ownership.php || "$diagnostic" == tests/diagnostics/e4-timing.php || "$diagnostic" == tests/diagnostics/e5-migration.php ]] || { printf 'Unsupported diagnostic path\n' >&2; exit 2; }
+legacy_mount=()
+if [[ "$diagnostic" == tests/diagnostics/e5-migration.php ]]; then
+	mkdir -p "$out/legacy"
+	git archive v2.0.0 lib | tar -x -C "$out/legacy" || { printf 'Unable to export tagged 2.0.0 source\n' >&2; exit 2; }
+	git rev-parse v2.0.0 > "$out/legacy-revision.txt"
+	legacy_mount=(--mount "type=bind,src=$out/legacy,dst=/legacy,readonly" -e WP_LOCK_E5_LEGACY_ROOT=/legacy)
+fi
 d1_docker() { "$docker_bin" "$@"; }
 active_name=
 active_label=
@@ -84,7 +91,7 @@ for row in "${rows[@]}"; do
 		sleep 1
 	done
 	[[ "$ready" -eq 0 ]] || die "database readiness $label"
-	if d1_docker run --rm --network none --mount "type=bind,src=$repo_dir,dst=/repo,readonly" \
+	if d1_docker run --rm --network none --mount "type=bind,src=$repo_dir,dst=/repo,readonly" "${legacy_mount[@]}" \
 		--mount "type=bind,src=$wp_source,dst=/wp,readonly" --mount "type=bind,src=$socket_dir,dst=/e1" \
 		--workdir /repo -e WP_LOCK_E1_DISPOSABLE=wp_lock_e1 -e WP_LOCK_E1_SOCKET=/e1/mysql.sock -e WP_LOCK_E1_WP=/wp \
 		"wp-lock-d1-php:$php_version" php "$diagnostic" > "$out/logs/$label.jsonl" 2> "$out/logs/$label.stderr"; then

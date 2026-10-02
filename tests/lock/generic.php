@@ -3,6 +3,7 @@
 use iTRON\WP_Lock\helpers\Database;
 use iTRON\WP_Lock\WP_Lock;
 use iTRON\WP_Lock\WP_Lock_Backend_DB;
+use iTRON\WP_Lock\WP_Lock_Foundations;
 use iTRON\WP_Lock\WP_Lock_Ownership_Lost;
 
 class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
@@ -13,6 +14,8 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 		Database::register_table( WP_Lock_Backend_DB::TABLE_NAME );
 		WP_Lock_Backend_DB::maybe_upgrade_schema( true );
 		$this->delete_all_locks();
+		WP_Lock_Foundations::prepare_schema();
+		WP_Lock_Foundations::switch_protocol( WP_Lock_Foundations::PROTOCOL_VERSION );
 	}
 
 	protected function tearDown(): void {
@@ -60,7 +63,7 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 			! function_exists( 'pcntl_waitpid' ) ||
 			! function_exists( 'posix_kill' )
 		) {
-			$this->markTestSkipped( 'PCNTL and POSIX process control are required.' );
+			throw new RuntimeException( 'PCNTL and POSIX process control are required.' );
 		}
 	}
 

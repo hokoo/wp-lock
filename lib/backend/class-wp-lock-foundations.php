@@ -12,6 +12,8 @@ final class WP_Lock_Foundations {
 	const RESOURCE_TABLE = 'lock_resource';
 	const SCHEMA_OPTION = 'wp_lock_db_foundation_schema_version';
 	const SCHEMA_VERSION = '3.0.0-foundations';
+	const PROTOCOL_OPTION = 'wp_lock_db_protocol_version';
+	const PROTOCOL_VERSION = '3.0.0';
 
 	private $db;
 	private string $namespace;
@@ -72,8 +74,91 @@ final class WP_Lock_Foundations {
 			throw new \RuntimeException( 'Lock foundation schema marker could not be verified.' );
 		}
 		$session->assert_connection();
+		self::clear_option_cache( self::SCHEMA_OPTION );
 		} finally {
 			$session->close();
+		}
+	}
+
+	/** Switch only while external admissions are stopped and every old/new participant is quiescent. */
+	public static function switch_protocol( string $target ): void {
+		if ( ! in_array( $target, array( '2.0.0', self::PROTOCOL_VERSION ), true ) ) {
+			throw new \InvalidArgumentException( 'Unsupported lock protocol version.' );
+		}
+		$namespace = self::namespace();
+		$session = self::connect( $namespace );
+		try {
+			self::verify_schema( $session->db, $namespace );
+			$session->assert_connection();
+			if ( self::SCHEMA_VERSION !== $session->option( self::SCHEMA_OPTION ) ) {
+				throw new \RuntimeException( 'Lock foundation schema version is unverified.' );
+			}
+			$owner = self::quote( $namespace . WP_Lock_Backend_DB::TABLE_NAME );
+			$count = $session->db->get_var( "SELECT COUNT(*) FROM {$owner}" );
+			if ( ! empty( $session->db->last_error ) || null === $count ) {
+				throw new \RuntimeException( 'Unable to verify drained lock owners.' );
+			}
+			$session->assert_connection();
+			if ( 0 !== (int) $count ) {
+				throw new \RuntimeException( 'Lock owners remain; resolve them before switching protocols.' );
+			}
+			$options = self::quote( $namespace . 'options' );
+			$session->checked( $session->db->prepare(
+				"INSERT INTO {$options} (option_name, option_value, autoload) VALUES (%s, %s, 'no') ON DUPLICATE KEY UPDATE option_value = VALUES(option_value)",
+				self::PROTOCOL_OPTION, $target
+			), false, 'protocol-switch' );
+			if ( $target !== $session->option( self::PROTOCOL_OPTION ) ) {
+				throw new \RuntimeException( 'Lock protocol switch could not be verified.' );
+			}
+			self::clear_option_cache( self::PROTOCOL_OPTION );
+		} finally {
+			$session->close();
+		}
+	}
+
+	/** Record the legacy owner-table version only after checking the actual primary schema. */
+	public static function record_legacy_schema_version(): void {
+		$namespace = self::namespace();
+		$session = self::connect( $namespace );
+		try {
+			self::verify_schema( $session->db, $namespace, false );
+			$session->assert_connection();
+			$options = self::quote( $namespace . 'options' );
+			$session->checked( $session->db->prepare(
+				"INSERT INTO {$options} (option_name, option_value, autoload) VALUES (%s, %s, 'no') ON DUPLICATE KEY UPDATE option_value = VALUES(option_value)",
+				WP_Lock_Backend_DB::SCHEMA_VERSION_OPTION, WP_Lock_Backend_DB::SCHEMA_VERSION
+			), false, 'legacy-schema-version' );
+			if ( WP_Lock_Backend_DB::SCHEMA_VERSION !== $session->option( WP_Lock_Backend_DB::SCHEMA_VERSION_OPTION ) ) {
+				throw new \RuntimeException( 'Legacy lock schema version could not be verified.' );
+			}
+			self::clear_option_cache( WP_Lock_Backend_DB::SCHEMA_VERSION_OPTION );
+		} finally {
+			$session->close();
+		}
+	}
+
+	/** Read the switch on the controlled primary connection for every new acquisition. */
+	public function assert_protocol_enabled(): void {
+		if ( self::PROTOCOL_VERSION !== $this->option( self::PROTOCOL_OPTION ) ) {
+			throw new \RuntimeException( 'Lock 3.0 acquisition is disabled until the protocol switch completes.' );
+		}
+	}
+
+	private function option( string $name ): ?string {
+		$options = self::quote( $this->namespace . 'options' );
+		$value = $this->db->get_var( $this->db->prepare( "SELECT option_value FROM {$options} WHERE option_name = %s", $name ) );
+		if ( ! empty( $this->db->last_error ) ) {
+			throw new \RuntimeException( 'Unable to verify lock protocol or schema version.' );
+		}
+		$this->assert_connection();
+		return null === $value ? null : (string) $value;
+	}
+
+	private static function clear_option_cache( string $name ): void {
+		if ( function_exists( 'wp_cache_delete' ) ) {
+			wp_cache_delete( $name, 'options' );
+			wp_cache_delete( 'notoptions', 'options' );
+			wp_cache_delete( 'alloptions', 'options' );
 		}
 	}
 
@@ -188,7 +273,7 @@ final class WP_Lock_Foundations {
 
 	private static function column( $db, string $table, string $column ): ?array {
 		$row = $db->get_row( $db->prepare(
-			'SELECT data_type AS data_type, column_type AS column_type, is_nullable AS is_nullable, character_maximum_length AS character_maximum_length, extra AS extra FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = %s AND column_name = %s',
+			'SELECT data_type AS data_type, column_type AS column_type, is_nullable AS is_nullable, character_maximum_length AS character_maximum_length, column_default AS column_default, extra AS extra FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = %s AND column_name = %s',
 			$table, $column
 		), ARRAY_A );
 		if ( ! empty( $db->last_error ) ) {
@@ -217,8 +302,8 @@ final class WP_Lock_Foundations {
 		return is_array( $row ) ? $row : null;
 	}
 
-	private static function verify_schema( $db, string $namespace ): void {
-		foreach ( array( WP_Lock_Backend_DB::TABLE_NAME, self::RESOURCE_TABLE ) as $suffix ) {
+	private static function verify_schema( $db, string $namespace, bool $foundation = true ): void {
+		foreach ( $foundation ? array( WP_Lock_Backend_DB::TABLE_NAME, self::RESOURCE_TABLE ) : array( WP_Lock_Backend_DB::TABLE_NAME ) as $suffix ) {
 			$engine = $db->get_var( $db->prepare(
 				'SELECT engine AS engine FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = %s',
 				$namespace . $suffix
@@ -237,31 +322,41 @@ final class WP_Lock_Foundations {
 			array( $owner, 'pid', 'int', null, 'YES' ),
 			array( $owner, 'cid', 'int', null, 'YES' ),
 			array( $owner, 'expire', 'decimal', null, 'YES' ),
-			array( $owner, 'attempt_token', 'char', 32, 'YES' ),
-			array( $resource, 'lock_key', 'char', 32, 'NO' ),
 		);
+		if ( $foundation ) {
+			$checks[] = array( $owner, 'attempt_token', 'char', 32, 'YES' );
+			$checks[] = array( $resource, 'lock_key', 'char', 32, 'NO' );
+		}
 		foreach ( $checks as $check ) {
 			$column = self::column( $db, $check[0], $check[1] );
 			if ( ! $column || $check[2] !== $column['data_type'] ||
 				( null !== $check[3] && (int) $column['character_maximum_length'] !== $check[3] ) ||
 				$check[4] !== $column['is_nullable'] ||
 				( 'id' === $check[1] && ( false === strpos( $column['extra'], 'auto_increment' ) || false === strpos( $column['column_type'], 'unsigned' ) ) ) ||
+				( 'attempt_token' === $check[1] && null !== $column['column_default'] && 'NULL' !== strtoupper( (string) $column['column_default'] ) ) ||
 				( in_array( $check[1], array( 'level', 'pid', 'cid', 'expire' ), true ) && false === strpos( $column['column_type'], 'unsigned' ) ) ||
 				( 'expire' === $check[1] && false === strpos( $column['column_type'], '(16,6)' ) ) ) {
 				throw new \RuntimeException( 'Lock foundation column verification failed: ' . $check[1] );
 			}
 		}
-		foreach ( array(
+		$indexes = array(
 			array( $owner, 'PRIMARY', 'id', 0 ),
 			array( $owner, 'lock_key', 'lock_key', 1 ),
-			array( $owner, 'attempt_token', 'attempt_token', 0 ),
-			array( $resource, 'PRIMARY', 'lock_key', 0 ),
-		) as $check ) {
+			array( $owner, 'level', 'level', 1 ),
+		);
+		if ( $foundation ) {
+			$indexes[] = array( $owner, 'attempt_token', 'attempt_token', 0 );
+			$indexes[] = array( $resource, 'PRIMARY', 'lock_key', 0 );
+		}
+		foreach ( $indexes as $check ) {
 			$index = self::index( $db, $check[0], $check[1] );
 			if ( ! $index || $check[2] !== $index['column_name'] ||
 				$check[3] !== (int) $index['non_unique'] || 1 !== (int) $index['parts'] || null !== $index['sub_part'] ) {
 				throw new \RuntimeException( 'Lock foundation index verification failed: ' . $check[1] );
 			}
+		}
+		if ( ! $foundation ) {
+			return;
 		}
 		$invalid = $db->get_var( $db->prepare(
 			'SELECT COUNT(DISTINCT index_name) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = %s AND non_unique = 0 AND index_name NOT IN (%s, %s)',

@@ -217,6 +217,7 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 			$commit_started = false;
 			try {
 				$session = WP_Lock_Foundations::open( null, $wait_guard );
+				$session->assert_protocol_enabled();
 				$namespace = WP_Lock_Foundations::namespace();
 				if ( $timed_wait && hrtime( true ) >= $deadline ) {
 					throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
@@ -474,12 +475,8 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 		}
 
 		self::install();
-		if ( ! self::has_index( 'lock_key' ) ) {
-			return false;
-		}
-
 		if ( $can_track_version ) {
-			update_option( self::SCHEMA_VERSION_OPTION, self::SCHEMA_VERSION, false );
+			WP_Lock_Foundations::record_legacy_schema_version();
 		}
 
 		return true;
