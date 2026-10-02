@@ -1,0 +1,85 @@
+{"case":"environment","isolation":"REPEATABLE READ","engine":"InnoDB","server":"9.7.2","php":"8.5.11","wordpress":"7.1.2"}
+{"case":"simultaneous_first_write_REPEATABLE READ","pass":true}
+{"case":"simultaneous_first_read_REPEATABLE READ","pass":true}
+{"case":"repeated_shared_read_REPEATABLE READ","pass":true}
+{"case":"real_lock_wait_retry_REPEATABLE READ","pass":true}
+{"case":"real_release_lock_wait_retry_REPEATABLE READ","pass":true}
+{"case":"shared_and_exclusive_REPEATABLE READ","pass":true}
+{"case":"independent_process_conflict_REPEATABLE READ","pass":true}
+{"case":"caller_rollback_REPEATABLE READ","pass":true}
+{"case":"failed_exists_and_release_retry_REPEATABLE READ","pass":true}
+{"case":"uncertain_insert_REPEATABLE READ","pass":true}
+{"case":"uncertain_commit_REPEATABLE READ","pass":true}
+{"case":"committed_unconfirmed_zero_row_cleanup_REPEATABLE READ","pass":true}
+{"case":"namespace_capture_REPEATABLE READ","pass":true}
+{"case":"predecessor_safe_release_REPEATABLE READ","pass":true}
+{"case":"slow_commit_expired_lease_REPEATABLE READ","pass":true}
+{"case":"statement_wait_lease_start_REPEATABLE READ","pass":true}
+{"case":"database_clock_authority_REPEATABLE READ","pass":true}
+{"case":"expired_present_owner_release_REPEATABLE READ","pass":true}
+{"case":"expired_predecessor_safe_release_REPEATABLE READ","pass":true}
+{"case":"slow_sql_exhausts_wait_before_insert_REPEATABLE READ","pass":true}
+{"case":"slow_resource_upsert_stops_next_sql_REPEATABLE READ","pass":true}
+{"case":"slow_diagnostic_lookup_stops_owner_insert_REPEATABLE READ","pass":true}
+{"case":"failed_sql_exhausts_wait_as_error_REPEATABLE READ","pass":true}
+{"case":"zero_and_nonblocking_single_attempt_REPEATABLE READ","pass":true}
+{"case":"alternating_errors_and_contention_share_budget_REPEATABLE READ","pass":true}
+{"case":"proven_conflict_supersedes_earlier_sql_error_REPEATABLE READ","pass":true}
+{"case":"late_commit_exact_cleanup_REPEATABLE READ","pass":true}
+{"case":"late_commit_failed_cleanup_retains_identity_REPEATABLE READ","pass":true}
+{"case":"timed_uncertain_commit_retains_identity_REPEATABLE READ","pass":true}
+{"case":"ttl_zero_visibility_is_not_liveness_REPEATABLE READ","pass":true}
+{"case":"finite_cleanup_faults_and_successor_REPEATABLE READ","pass":true}
+{"case":"acquire_zero_row_expired_cleanup_REPEATABLE READ","pass":true}
+{"event":"manual_recovery","namespace":"e3_","database":"wp_lock_e1","resource":"manual-6abf6674af119","owner_id":86,"attempt_token":"2a45caeaeee9ec9a442e2545ca55d887","reason":"terminated disposable TTL=0 fixture owner","termination":"fixture participants positively stopped","operator":"diagnostic fixture","time_utc":"2026-10-02T08:08:20+00:00","sql_outcome":"SELECT id, level, expire, attempt_token FROM `e3_lock` failed","postcondition":"owner retained","barrier_engaged":true}
+{"event":"manual_recovery","namespace":"e3_","database":"wp_lock_e1","resource":"manual-6abf6674af119","owner_id":86,"attempt_token":"2a45caeaeee9ec9a442e2545ca55d887","reason":"terminated disposable TTL=0 fixture owner","termination":"fixture participants positively stopped","operator":"diagnostic fixture","time_utc":"2026-10-02T08:08:20+00:00","sql_outcome":"DELETE FROM `e3_lock` failed","postcondition":"owner retained","barrier_engaged":true}
+{"event":"manual_recovery","namespace":"e3_","database":"wp_lock_e1","resource":"manual-6abf6674af119","owner_id":86,"attempt_token":"2a45caeaeee9ec9a442e2545ca55d887","reason":"terminated disposable TTL=0 fixture owner","termination":"fixture participants positively stopped","operator":"diagnostic fixture","time_utc":"2026-10-02T08:08:20+00:00","sql_outcome":"COMMIT failed","postcondition":"owner retained","barrier_engaged":true}
+{"event":"manual_recovery","namespace":"e3_","database":"wp_lock_e1","resource":"manual-6abf6674af119","owner_id":86,"attempt_token":"2a45caeaeee9ec9a442e2545ca55d887","reason":"terminated disposable TTL=0 fixture owner","termination":"fixture participants positively stopped","operator":"diagnostic fixture","time_utc":"2026-10-02T08:08:20+00:00","sql_outcome":"COMMIT confirmed","postcondition":"fresh read failed; barrier retained","barrier_engaged":true}
+{"event":"manual_recovery","namespace":"e3_","database":"wp_lock_e1","resource":"manual-6abf6674af119","owner_id":86,"attempt_token":"2a45caeaeee9ec9a442e2545ca55d887","reason":"terminated disposable TTL=0 fixture owner","termination":"fixture participants positively stopped","operator":"diagnostic fixture","time_utc":"2026-10-02T08:08:20+00:00","sql_outcome":"no second DELETE","postcondition":"fresh primary absence verified","barrier_engaged":false}
+{"event":"manual_recovery","namespace":"e3_","database":"wp_lock_e1","resource":"manual-legacy-6abf6674c8ab2","owner_id":88,"attempt_token":null,"reason":"terminated disposable TTL=0 fixture owner","termination":"fixture participants positively stopped","operator":"diagnostic fixture","time_utc":"2026-10-02T08:08:20+00:00","sql_outcome":"no DELETE: shared peer unresolved","postcondition":"two owners retained; barrier retained","barrier_engaged":true}
+{"event":"manual_recovery","namespace":"e3_","database":"wp_lock_e1","resource":"manual-legacy-6abf6674c8ab2","owner_id":89,"attempt_token":null,"reason":"terminated disposable TTL=0 fixture owner","termination":"fixture participants positively stopped","operator":"diagnostic fixture","time_utc":"2026-10-02T08:08:20+00:00","sql_outcome":"one exact IS NULL DELETE and COMMIT","postcondition":"one identified legacy owner remains; barrier retained","barrier_engaged":true}
+{"event":"manual_recovery","namespace":"e3_","database":"wp_lock_e1","resource":"manual-legacy-6abf6674c8ab2","owner_id":88,"attempt_token":null,"reason":"terminated disposable TTL=0 fixture owner","termination":"fixture participants positively stopped","operator":"diagnostic fixture","time_utc":"2026-10-02T08:08:20+00:00","sql_outcome":"one exact IS NULL DELETE and COMMIT","postcondition":"fresh primary absence verified","barrier_engaged":false}
+{"case":"ttl_zero_manual_recovery_barrier_REPEATABLE READ","pass":true}
+{"case":"environment","isolation":"READ COMMITTED","engine":"InnoDB","server":"9.7.2","php":"8.5.11","wordpress":"7.1.2"}
+{"case":"simultaneous_first_write_READ COMMITTED","pass":true}
+{"case":"simultaneous_first_read_READ COMMITTED","pass":true}
+{"case":"repeated_shared_read_READ COMMITTED","pass":true}
+{"case":"real_lock_wait_retry_READ COMMITTED","pass":true}
+{"case":"real_release_lock_wait_retry_READ COMMITTED","pass":true}
+{"case":"shared_and_exclusive_READ COMMITTED","pass":true}
+{"case":"independent_process_conflict_READ COMMITTED","pass":true}
+{"case":"caller_rollback_READ COMMITTED","pass":true}
+{"case":"failed_exists_and_release_retry_READ COMMITTED","pass":true}
+{"case":"uncertain_insert_READ COMMITTED","pass":true}
+{"case":"uncertain_commit_READ COMMITTED","pass":true}
+{"case":"committed_unconfirmed_zero_row_cleanup_READ COMMITTED","pass":true}
+{"case":"namespace_capture_READ COMMITTED","pass":true}
+{"case":"predecessor_safe_release_READ COMMITTED","pass":true}
+{"case":"slow_commit_expired_lease_READ COMMITTED","pass":true}
+{"case":"statement_wait_lease_start_READ COMMITTED","pass":true}
+{"case":"database_clock_authority_READ COMMITTED","pass":true}
+{"case":"expired_present_owner_release_READ COMMITTED","pass":true}
+{"case":"expired_predecessor_safe_release_READ COMMITTED","pass":true}
+{"case":"slow_sql_exhausts_wait_before_insert_READ COMMITTED","pass":true}
+{"case":"slow_resource_upsert_stops_next_sql_READ COMMITTED","pass":true}
+{"case":"slow_diagnostic_lookup_stops_owner_insert_READ COMMITTED","pass":true}
+{"case":"failed_sql_exhausts_wait_as_error_READ COMMITTED","pass":true}
+{"case":"zero_and_nonblocking_single_attempt_READ COMMITTED","pass":true}
+{"case":"alternating_errors_and_contention_share_budget_READ COMMITTED","pass":true}
+{"case":"proven_conflict_supersedes_earlier_sql_error_READ COMMITTED","pass":true}
+{"case":"late_commit_exact_cleanup_READ COMMITTED","pass":true}
+{"case":"late_commit_failed_cleanup_retains_identity_READ COMMITTED","pass":true}
+{"case":"timed_uncertain_commit_retains_identity_READ COMMITTED","pass":true}
+{"case":"ttl_zero_visibility_is_not_liveness_READ COMMITTED","pass":true}
+{"case":"finite_cleanup_faults_and_successor_READ COMMITTED","pass":true}
+{"case":"acquire_zero_row_expired_cleanup_READ COMMITTED","pass":true}
+{"event":"manual_recovery","namespace":"e3_","database":"wp_lock_e1","resource":"manual-6abf667e279b7","owner_id":176,"attempt_token":"07e5c718823a7c254e2152a70d0123b3","reason":"terminated disposable TTL=0 fixture owner","termination":"fixture participants positively stopped","operator":"diagnostic fixture","time_utc":"2026-10-02T08:08:30+00:00","sql_outcome":"SELECT id, level, expire, attempt_token FROM `e3_lock` failed","postcondition":"owner retained","barrier_engaged":true}
+{"event":"manual_recovery","namespace":"e3_","database":"wp_lock_e1","resource":"manual-6abf667e279b7","owner_id":176,"attempt_token":"07e5c718823a7c254e2152a70d0123b3","reason":"terminated disposable TTL=0 fixture owner","termination":"fixture participants positively stopped","operator":"diagnostic fixture","time_utc":"2026-10-02T08:08:30+00:00","sql_outcome":"DELETE FROM `e3_lock` failed","postcondition":"owner retained","barrier_engaged":true}
+{"event":"manual_recovery","namespace":"e3_","database":"wp_lock_e1","resource":"manual-6abf667e279b7","owner_id":176,"attempt_token":"07e5c718823a7c254e2152a70d0123b3","reason":"terminated disposable TTL=0 fixture owner","termination":"fixture participants positively stopped","operator":"diagnostic fixture","time_utc":"2026-10-02T08:08:30+00:00","sql_outcome":"COMMIT failed","postcondition":"owner retained","barrier_engaged":true}
+{"event":"manual_recovery","namespace":"e3_","database":"wp_lock_e1","resource":"manual-6abf667e279b7","owner_id":176,"attempt_token":"07e5c718823a7c254e2152a70d0123b3","reason":"terminated disposable TTL=0 fixture owner","termination":"fixture participants positively stopped","operator":"diagnostic fixture","time_utc":"2026-10-02T08:08:30+00:00","sql_outcome":"COMMIT confirmed","postcondition":"fresh read failed; barrier retained","barrier_engaged":true}
+{"event":"manual_recovery","namespace":"e3_","database":"wp_lock_e1","resource":"manual-6abf667e279b7","owner_id":176,"attempt_token":"07e5c718823a7c254e2152a70d0123b3","reason":"terminated disposable TTL=0 fixture owner","termination":"fixture participants positively stopped","operator":"diagnostic fixture","time_utc":"2026-10-02T08:08:30+00:00","sql_outcome":"no second DELETE","postcondition":"fresh primary absence verified","barrier_engaged":false}
+{"event":"manual_recovery","namespace":"e3_","database":"wp_lock_e1","resource":"manual-legacy-6abf667e4634c","owner_id":178,"attempt_token":null,"reason":"terminated disposable TTL=0 fixture owner","termination":"fixture participants positively stopped","operator":"diagnostic fixture","time_utc":"2026-10-02T08:08:30+00:00","sql_outcome":"no DELETE: shared peer unresolved","postcondition":"two owners retained; barrier retained","barrier_engaged":true}
+{"event":"manual_recovery","namespace":"e3_","database":"wp_lock_e1","resource":"manual-legacy-6abf667e4634c","owner_id":179,"attempt_token":null,"reason":"terminated disposable TTL=0 fixture owner","termination":"fixture participants positively stopped","operator":"diagnostic fixture","time_utc":"2026-10-02T08:08:30+00:00","sql_outcome":"one exact IS NULL DELETE and COMMIT","postcondition":"one identified legacy owner remains; barrier retained","barrier_engaged":true}
+{"event":"manual_recovery","namespace":"e3_","database":"wp_lock_e1","resource":"manual-legacy-6abf667e4634c","owner_id":178,"attempt_token":null,"reason":"terminated disposable TTL=0 fixture owner","termination":"fixture participants positively stopped","operator":"diagnostic fixture","time_utc":"2026-10-02T08:08:30+00:00","sql_outcome":"one exact IS NULL DELETE and COMMIT","postcondition":"fresh primary absence verified","barrier_engaged":false}
+{"case":"ttl_zero_manual_recovery_barrier_READ COMMITTED","pass":true}
+{"case":"summary","pass":true,"php":"8.5.11","wordpress":"7.1.2"}

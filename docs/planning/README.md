@@ -2,7 +2,7 @@
 
 The root [ROADMAP.md](../../ROADMAP.md) owns versions and release scope. This directory contains execution contracts, not another release schedule. The [issue register](../issues/README.md) records findings; the [audit](../review-2026-09-29/assessment.md) provides research evidence.
 
-There are **four mandatory epics and 15 tasks** for one planned 3.0.0 release, including four independent QA tasks. B0–B2 are complete, including [E3-QA](qa/E3.md) with `pass_with_notes`. OWNER authorized B3 execution and accepted E4's root model on 2026-10-02; B3 is in integrated verification on `batch/b3`; E4-01–03 are in review. B4–B5 have not started and remain unauthorized. OWNER authorized B1 and B2 execution on 2026-10-01. Renewal is deferred as ISSUE-012 without a version or task breakdown.
+There are **four mandatory epics and 15 tasks** for one planned 3.0.0 release, including four independent QA tasks. B0–B2 are complete, including [E3-QA](qa/E3.md) with `pass_with_notes`. OWNER authorized B3 execution and accepted E4's root model on 2026-10-02; B3 is awaiting review and delivery of the verified E4-QA repair on `batch/b3-qa-repair`; E4-01–02 are delivered, E4-03 is in review, and final E4-QA remains pending. B4–B5 have not started and remain unauthorized. OWNER authorized B1 and B2 execution on 2026-10-01. Renewal is deferred as ISSUE-012 without a version or task breakdown.
 
 ## Navigation
 

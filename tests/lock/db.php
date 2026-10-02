@@ -657,6 +657,59 @@ class WP_Lock_Backend_DB_UnitTestCase extends WP_UnitTestCase {
 		$successor->release();
 	}
 
+	public function test_zero_row_acquire_cleanup_rolls_back_before_owner_insert_and_can_retry(): void {
+		global $wpdb;
+
+		$id = uniqid( 'acquire_cleanup_', true );
+		$old = new WP_Lock( $id );
+		$backend = new WP_Lock_Backend_DB( 0, 0 );
+		$successor = new WP_Lock( $id, $backend );
+		$this->assertTrue( $old->acquire( WP_Lock::WRITE, false, 30 ) );
+		$owner = $wpdb->get_row( $wpdb->prepare(
+			"SELECT id, attempt_token FROM `{$wpdb->prefix}lock` WHERE lock_key = %s", md5( $id )
+		), ARRAY_A );
+		$this->assertSame( 1, $wpdb->query( $wpdb->prepare(
+			"UPDATE `{$wpdb->prefix}lock` SET expire = UNIX_TIMESTAMP(NOW(6)) - 1 WHERE lock_key = %s", md5( $id )
+		) ) );
+		$injected = false;
+		$inserts = 0;
+		$failed_delete = $this->zero_delete_once( $id, $injected );
+		$count_inserts = function( $query ) use ( &$inserts, $wpdb ) {
+			if ( false !== strpos( $query, "INSERT INTO `{$wpdb->prefix}lock` (lock_key, original_key" ) ) {
+				++$inserts;
+			}
+			return $query;
+		};
+		add_filter( 'query', $count_inserts );
+		try {
+			$successor->acquire( WP_Lock::WRITE, false, 0 );
+			$this->fail( 'Zero-row acquire cleanup must fail before inserting an owner.' );
+		} catch ( \RuntimeException $error ) {
+			$this->assertNotInstanceOf( WP_Lock_Ownership_Uncertain::class, $error );
+			$this->assertSame( 'Unable to acquire lock because of a database error.', $error->getMessage() );
+		} finally {
+			remove_filter( 'query', $failed_delete );
+			remove_filter( 'query', $count_inserts );
+		}
+		$this->assertTrue( $injected );
+		$this->assertSame( 0, $inserts );
+		$this->assertFalse( $backend->has_unresolved( $id ) );
+		$this->assertSame( 1, $this->count_owners( $id ) );
+		$this->assertSame( $owner, $wpdb->get_row( $wpdb->prepare(
+			"SELECT id, attempt_token FROM `{$wpdb->prefix}lock` WHERE lock_key = %s", md5( $id )
+		), ARRAY_A ) );
+		$this->assertTrue( $successor->acquire( WP_Lock::WRITE, false, 0 ) );
+		try {
+			$old->release();
+			$this->fail( 'Expired predecessor release must report loss.' );
+		} catch ( WP_Lock_Ownership_Lost $expected ) {
+			$this->assertSame( 1, $this->count_owners( $id ) );
+		} finally {
+			$successor->release();
+		}
+		$this->assertSame( 0, $this->count_owners( $id ) );
+	}
+
 	public function test_slow_commit_cannot_grant_an_expired_lease(): void {
 		$id = uniqid( 'slow_commit_', true );
 		$lock = new WP_Lock( $id );

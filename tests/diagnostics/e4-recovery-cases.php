@@ -63,6 +63,41 @@ case_ok( 'finite_cleanup_faults_and_successor_' . $isolation, function() {
 	$new->release();
 } );
 
+case_ok( 'acquire_zero_row_expired_cleanup_' . $isolation, function() {
+	global $wpdb;
+	$id = 'acquire-clean-' . uniqid();
+	$old = new WP_Lock( $id );
+	$backend = new WP_Lock_Backend_DB( 0, 0 );
+	$successor = new WP_Lock( $id, $backend );
+	check( $old->acquire( WP_Lock::WRITE, false, 30 ), 'Expired-owner fixture failed.' );
+	$owner = $wpdb->get_row( $wpdb->prepare( 'SELECT id, attempt_token FROM e3_lock WHERE lock_key = %s', md5( $id ) ), ARRAY_A );
+	sql( $wpdb->prepare( 'UPDATE e3_lock SET expire = UNIX_TIMESTAMP(NOW(6)) - 1 WHERE lock_key = %s', md5( $id ) ) );
+	$injected = false;
+	$inserts = 0;
+	$failed_delete = zero_delete_once( $id, $injected );
+	$count_inserts = function( $query ) use ( &$inserts ) {
+		if ( false !== strpos( $query, 'INSERT INTO `e3_lock` (lock_key, original_key' ) ) { ++$inserts; }
+		return $query;
+	};
+	add_filter( 'query', $count_inserts );
+	try {
+		try { $successor->acquire( WP_Lock::WRITE, false, 0 ); throw new RuntimeException( 'Zero-row acquire cleanup returned normally.' ); }
+		catch ( RuntimeException $error ) {
+			check( ! $error instanceof WP_Lock_Ownership_Uncertain && 'Unable to acquire lock because of a database error.' === $error->getMessage(), 'Zero-row cleanup did not report a confirmed rollback error.' );
+		}
+	} finally {
+		remove_filter( 'query', $failed_delete );
+		remove_filter( 'query', $count_inserts );
+	}
+	check( $injected && 0 === $inserts && ! $backend->has_unresolved( $id ) && 1 === count_owners( $id ), 'Faulted acquisition inserted or lost an owner.' );
+	check( $owner === $wpdb->get_row( $wpdb->prepare( 'SELECT id, attempt_token FROM e3_lock WHERE lock_key = %s', md5( $id ) ), ARRAY_A ), 'Rollback changed the expired owner identity.' );
+	check( $successor->acquire( WP_Lock::WRITE, false, 0 ), 'Same wrapper could not retry after the fault.' );
+	try { $old->release(); throw new RuntimeException( 'Expired predecessor release succeeded.' ); }
+	catch ( WP_Lock_Ownership_Lost $expected ) {}
+	check( 1 === count_owners( $id ) && $successor->lock_exists(), 'Expired predecessor deleted its successor.' );
+	$successor->release();
+} );
+
 /** Fixture-only exact recovery while the namespace admissions barrier remains engaged. */
 if ( ! function_exists( 'rehearse_recovery' ) ) {
 function recovery_postcondition( string $id, string $isolation, bool &$barrier ): void {
