@@ -312,6 +312,7 @@ try {
 		e3_assert( 'old' === e3_marker(), 'DDL failure advanced marker.' );
 		WP_Lock_Foundations::prepare_schema();
 	} );
+	WP_Lock_Foundations::switch_protocol( WP_Lock_Foundations::PROTOCOL_VERSION );
 	e3_case( 'strict_full_identity', function() {
 		global $wpdb;
 		$a = str_repeat( 'x', 50 ) . 'A';

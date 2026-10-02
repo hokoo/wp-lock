@@ -383,6 +383,7 @@ try {
 	sql( 'DROP TABLE IF EXISTS e3_probe' );
 	sql( 'CREATE TABLE e3_probe (id int NOT NULL PRIMARY KEY) ENGINE=InnoDB' );
 	WP_Lock_Foundations::prepare_schema();
+	WP_Lock_Foundations::switch_protocol( WP_Lock_Foundations::PROTOCOL_VERSION );
 	$server = $wpdb->get_var( 'SELECT VERSION()' );
 	foreach ( array( 'REPEATABLE READ', 'READ COMMITTED' ) as $isolation ) {
 		$wpdb = connect( $isolation );

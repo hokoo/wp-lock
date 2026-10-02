@@ -15,7 +15,7 @@
 
 ## E5-01. Implement and rehearse upgrade/rollback
 
-- **Status:** todo. **Owner:** DEV + DO. **Priority:** P1. **Batch:** B4.
+- **Status:** review. **Owner:** DEV + DO. **Priority:** P1. **Batch:** B4.
 - **Goal:** switch protocols without allowing independent incompatible owners.
 - **Scope:** accepted migration/install hooks, complete schema verification, stopping new acquisitions, owner drain and TTL=0 resolution, clean install/upgrade/partial failure/rollback rehearsals on temporary databases.
 - **Out of Scope:** production switching or deleting unknown active owners.
