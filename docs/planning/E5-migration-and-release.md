@@ -27,7 +27,7 @@
 
 ## E5-02. Required CI matrix and coverage
 
-- **Status:** todo. **Owner:** TEST. **Priority:** P1. **Batch:** B4.
+- **Status:** review. **Owner:** TEST. **Priority:** P1. **Batch:** B4.
 - **Goal:** ownership regressions block delivery on supported configurations.
 - **Scope:** workflow and test helpers/configuration; retain D1 PHP coverage, add MySQL/MariaDB × RR/RC checks, required process-control preflight, deadlines/evidence capture, and the current >=90% coverage gate.
 - **Out of Scope:** an unjustified full PHP/WP/DB Cartesian product and independent load benchmarking.
@@ -39,7 +39,7 @@
 
 ## E5-03. User and operator documentation
 
-- **Status:** waiting_dependency. **Owner:** DO. **Priority:** P1. **Batch:** B4.
+- **Status:** todo. **Owner:** DO. **Priority:** P1. **Batch:** B4.
 - **Goal:** give consumers accurate usage boundaries and migration instructions.
 - **Scope:** README/CHANGELOG, examples, error/lost-ownership behavior, TTL=0, metadata cache, resource keys, environment matrix, upgrade/rollback, and custom-backend compatibility; explain transactional/idempotent accounting boundaries without implementing an application.
 - **Out of Scope:** exactly-once external effects or designing a consumer payment system.

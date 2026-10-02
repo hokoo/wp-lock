@@ -1365,6 +1365,33 @@ class WP_Lock_Backend_DB_UnitTestCase extends WP_UnitTestCase {
 		$this->assertSame( 0, $this->count_owners( $id ) );
 	}
 
+	/** @dataProvider unsupported_isolations */
+	public function test_unsupported_isolation_refuses_acquisition( string $unsupported ): void {
+		global $wpdb;
+		$original = $wpdb->get_var( "SHOW SESSION VARIABLES LIKE 'transaction_isolation'", 1 );
+		if ( null === $original ) {
+			$original = $wpdb->get_var( "SHOW SESSION VARIABLES LIKE 'tx_isolation'", 1 );
+		}
+		$original = str_replace( '-', ' ', strtoupper( (string) $original ) );
+		$this->assertContains( $original, array( 'REPEATABLE READ', 'READ COMMITTED' ) );
+		$this->assertFalse( false === $wpdb->query( 'SET SESSION TRANSACTION ISOLATION LEVEL ' . $unsupported ) );
+		try {
+			( new WP_Lock_Backend_DB( 0, 0 ) )->acquire( uniqid( 'unsupported_isolation_', true ), WP_Lock::WRITE, false, 0 );
+			$this->fail( 'Unsupported isolation must not grant ownership.' );
+		} catch ( RuntimeException $error ) {
+			$this->assertStringContainsString( 'database error', $error->getMessage() );
+		} finally {
+			$wpdb->query( 'SET SESSION TRANSACTION ISOLATION LEVEL ' . $original );
+		}
+	}
+
+	public function unsupported_isolations(): array {
+		return array(
+			'read uncommitted' => array( 'READ UNCOMMITTED' ),
+			'serializable' => array( 'SERIALIZABLE' ),
+		);
+	}
+
 	public function test_snapshot_isolation_inspection_error_refuses_acquisition_without_committing_caller_work(): void {
 		global $wpdb;
 

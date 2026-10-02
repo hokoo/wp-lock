@@ -63,7 +63,7 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 			! function_exists( 'pcntl_waitpid' ) ||
 			! function_exists( 'posix_kill' )
 		) {
-			$this->markTestSkipped( 'PCNTL and POSIX process control are required.' );
+			throw new RuntimeException( 'PCNTL and POSIX process control are required.' );
 		}
 	}
 
