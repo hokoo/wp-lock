@@ -423,7 +423,7 @@ final class WP_Lock_Foundations {
 		$this->require_resource_lock( $id );
 		$table = self::quote( $this->namespace . WP_Lock_Backend_DB::TABLE_NAME );
 		return $this->checked( $this->db->prepare(
-			"SELECT id, lock_key, attempt_token FROM {$table} WHERE lock_key = %s AND attempt_token = %s FOR UPDATE",
+			"SELECT id, lock_key, attempt_token, expire FROM {$table} WHERE lock_key = %s AND attempt_token = %s FOR UPDATE",
 			md5( $id ), $token
 		), true, 'attempt-select' );
 	}

@@ -604,6 +604,48 @@ class WP_Lock_Backend_DB_UnitTestCase extends WP_UnitTestCase {
 		$this->assertSame( 0, $this->count_owners( $id ) );
 	}
 
+	public function test_expired_owner_release_reports_loss_before_cleanup(): void {
+		global $wpdb;
+
+		$id = uniqid( 'expired_owner_', true );
+		$old = new WP_Lock( $id );
+		$this->assertTrue( $old->acquire( WP_Lock::WRITE, false, 30 ) );
+		$this->assertSame( 1, $wpdb->query( $wpdb->prepare(
+			"UPDATE `{$wpdb->prefix}lock` SET expire = UNIX_TIMESTAMP(NOW(6)) - 1 WHERE lock_key = %s",
+			md5( $id )
+		) ) );
+		try {
+			$old->release();
+			$this->fail( 'An expired owner must report loss even before cleanup.' );
+		} catch ( WP_Lock_Ownership_Lost $expected ) {
+			$this->assertSame( 1, $this->count_owners( $id ) );
+		}
+		$this->assertTrue( $old->acquire( WP_Lock::WRITE, false, 0 ) );
+		$old->release();
+		$this->assertSame( 0, $this->count_owners( $id ) );
+	}
+
+	public function test_slow_commit_cannot_grant_an_expired_lease(): void {
+		$id = uniqid( 'slow_commit_', true );
+		$lock = new WP_Lock( $id );
+		$delayed = false;
+		$filter = function( $query ) use ( &$delayed ) {
+			if ( 'COMMIT' === $query && ! $delayed ) {
+				$delayed = true;
+				usleep( 1200000 );
+			}
+			return $query;
+		};
+		add_filter( 'query', $filter );
+		try {
+			$this->assertFalse( $lock->acquire( WP_Lock::WRITE, false, 1 ) );
+		} finally {
+			remove_filter( 'query', $filter );
+		}
+		$this->assertTrue( $delayed );
+		$this->assertSame( 0, $this->count_owners( $id ) );
+	}
+
 	public function test_full_resource_id_is_used_when_diagnostic_original_key_cannot_fit(): void {
 		global $wpdb;
 

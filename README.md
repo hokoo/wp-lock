@@ -92,7 +92,7 @@ Resource identity uses the MD5 of the complete string ID. The optional `original
 - `0` means no TTL; the lock remains until explicitly released or manually recovered after stopping all participants.
 - The value must be a non-negative integer.
 
-Use `try`/`finally` and release every acquired lock. Choose a finite TTL longer than the maximum expected duration of the protected work, with margin for scheduling and database delays. Expiry cannot fence a stalled caller's application writes.
+Use `try`/`finally` and release every acquired lock. The primary database clock starts a finite lease after the resource row is locked. A successful `acquire()` means the lease had remaining TTL at the last database-time check after commit; it does not guarantee the lease will still exist after a later PHP pause. Choose a finite TTL longer than the maximum expected duration of the protected work, with margin for scheduling and database delays. Expiry cannot fence a stalled caller's application writes. A later `release()` that observes expiry reports `WP_Lock_Ownership_Lost` and clears the confirmed handle.
 
 ### Checking lock existence
 

@@ -315,9 +315,11 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 			try {
 				$session->begin_resource( $id );
 				$found = $session->find_attempt( $id, $owner['token'] );
-				if ( ! $found || (int) $found[0]['id'] !== $owner['id'] ) {
+				$missing = ! $found || (int) $found[0]['id'] !== $owner['id'];
+				$expired = ! $missing && 0.0 !== (float) $found[0]['expire'] && (float) $found[0]['expire'] <= $session->now();
+				if ( $missing || $expired ) {
 					$session->rollback();
-					if ( ! empty( $owner['release_uncertain'] ) ) {
+					if ( $missing && ! empty( $owner['release_uncertain'] ) ) {
 						unset( $this->lock_ids[ $key ] );
 						return true;
 					}
