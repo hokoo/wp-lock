@@ -235,7 +235,9 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 						throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
 					}
 					if ( 0.0 !== (float) $owner['expire'] && (float) $owner['expire'] <= $now ) {
-						$session->delete_owner( $id, (int) $owner['id'], $owner['attempt_token'] );
+						if ( 1 !== $session->delete_owner( $id, (int) $owner['id'], $owner['attempt_token'] ) ) {
+							throw new \RuntimeException( 'The expired lock owner could not be deleted.' );
+						}
 						if ( $timed_wait && hrtime( true ) >= $deadline ) {
 							throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
 						}
