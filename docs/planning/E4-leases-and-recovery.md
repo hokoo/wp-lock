@@ -13,6 +13,8 @@
 **Risks/Open Questions:** arbitrary pauses after the last check remain possible; synchronous driver I/O limits a hard wall-clock bound.
 **Tasking Guidance:** use [common contracts and `$decompose-work`](README.md#common-task-contracts).
 
+**Delivery:** B3 is completed through [PR #11](https://github.com/hokoo/wp-lock/pull/11) and the [QA repair PR #12](https://github.com/hokoo/wp-lock/pull/12). Fresh independent [E4-QA](qa/E4.md#final-delivery--2026-10-02) returned `pass_with_notes` on merge `04f1555`; no exception was accepted.
+
 ## E4-01. Lease time and lost ownership
 
 - **Status:** completed. **Owner:** DEV. **Priority:** P1. **Batch:** B3.
@@ -39,7 +41,7 @@
 
 ## E4-03. Conservative cleanup and verified manual recovery
 
-- **Status:** review. **Owner:** DEV + DO. **Priority:** P1. **Batch:** B3.
+- **Status:** completed. **Owner:** DEV + DO. **Priority:** P1. **Batch:** B3.
 - **Goal:** preserve uncertain ownership and give operators a verified way to resolve TTL=0 owners.
 - **Scope:** consume E3-03's public `exists()` error result and retryable failed `release()` state; handle ghost/liveness failures and cleanup DELETE uncertainty conservatively, preserve serialized successor safety, and verify the TTL=0 recovery runbook with directed fault/procedure tests.
 - **Out of Scope:** distributed PID/CID liveness system, automatic reclamation on unknown identity, or production record deletion.
@@ -51,7 +53,7 @@
 
 ## E4-QA. Independent timing and failure review
 
-- **Status:** waiting_dependency. **Owner:** QA. **Priority:** P0. **Batch:** B3.
+- **Status:** completed. **Owner:** QA. **Priority:** P0. **Batch:** B3.
 - **Goal:** verify lease, deadline, error, and recovery promises.
 - **Scope:** directed E4 scenarios, real DB/fault evidence, documentation, and exact revision.
 - **Out of Scope:** application balance invariants and renewal.
