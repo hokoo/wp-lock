@@ -194,6 +194,8 @@ A `pass_with_notes` gate permits only nonblocking notes after every required cri
 
 **E5-04 final-server pass / metadata assertion repair — 2026-10-02:** `/tmp/wp-lock-e5-package.RBLBbUC1` confirms corrected readiness, Composer-installed backend origin, exact file parity and actual RR environment, but exits 1 before owners because the information-schema assertion reads an absent lowercase `engine` key. Cleanup/status preservation passed. A bounded PHP-helper repair adds explicit metadata aliases without weakening actual-table engine checks. Next: new freeze and the complete package/remote gates; no candidate acceptance is inferred from partial setup.
 
+**E5-04 frozen package / CI accepted — 2026-10-02:** `a6bac35` package smoke passed RR/RC with mirrored Composer source parity (139 files), held independent owners, exact release, correct markers and zero final owners; archive SHA-256 `e2426b2219b8ae1daf6fdcdc93bc04c05c15682f62443a0c515da5c2820c1fb7`. Cleanup/status preservation passed. [Candidate CI 37023576954](https://github.com/hokoo/wp-lock/actions/runs/37023576954) passed all 12 jobs/12 native suites without skips, coverage 610/657 (92.85%); exact-head PR CI passed ten regular checks. Root accepted technical evidence and filled the existing manifest as delivery bookkeeping only. E5-04 stays `review` until B5 merge; next: freeze this report-only diff, independent readiness review, final PR checks/merge and E5-QA delivery gate.
+
 ## Transition rules
 
 1. Pull only tasks whose DoR and dependencies are met. Scheduling a batch does not approve a pending ADR choice.
