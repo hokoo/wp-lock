@@ -2,24 +2,26 @@
 
 Source: the [2026-09-29 audit](../review-2026-09-29/assessment.md), commit `26d3a07`, WP Lock 2.0.0. This is the project's local issue register; no GitHub issues have been created. The single [ROADMAP](../../ROADMAP.md) assigns release targets.
 
-`open` means an unresolved finding; `deferred` means a deliberately postponed capability. Execution readiness belongs to [task contracts](../planning/README.md). Evidence distinguishes real database reproductions, injected failures, source inspection, and feature proposals. No issue is currently closed.
+`open` means an unresolved finding; `resolved (candidate)` means its closure criteria passed on the named unpublished candidate; `deferred` means a deliberately postponed capability. Execution readiness belongs to [task contracts](../planning/README.md). Evidence distinguishes real database reproductions, injected failures, source inspection, and feature proposals. ISSUE-001–011 are resolved on frozen candidate `84a528d`, delivered in merge `8653f46`, after fresh independent [E5-QA](../planning/qa/E5.md#final-repaired-delivery--2026-10-02) returned `pass_with_notes`; these findings still apply to the published 2.0 baseline.
 
 | ID | Finding | Type / priority | State | Target |
 | --- | --- | --- | --- | --- |
-| [ISSUE-001](#issue-001) | Conflicting owners under READ COMMITTED | bug / P0 | open | 3.0.0 |
-| [ISSUE-002](#issue-002) | A failed liveness check can delete a live lock | bug / P0 | open | 3.0.0 |
-| [ISSUE-003](#issue-003) | An outer ROLLBACK removes the lock while PHP retains held state | bug / P0 | open | 3.0.0 |
-| [ISSUE-004](#issue-004) | Successful acquisition can return an expired lease | bug / P1 | open | 3.0.0 |
-| [ISSUE-005](#issue-005) | SQL latency and retries bypass the expected wait boundary | bug / P1 | open | 3.0.0 |
-| [ISSUE-006](#issue-006) | exists returns false on a database error | bug / P1 | open | 3.0.0 |
-| [ISSUE-007](#issue-007) | Resource IDs longer than 50 conflict with schema/README | bug / P1 | open | 3.0.0 |
-| [ISSUE-008](#issue-008) | PID/CID does not reliably identify TTL=0 ownership | bug / P1 | open | 3.0.0 |
-| [ISSUE-009](#issue-009) | CI misses the identified interleavings and isolation modes | testing / P1 | open | 3.0.0 |
-| [ISSUE-010](#issue-010) | Documentation does not fully describe guarantee boundaries | documentation / P1 | open | 3.0.0 |
-| [ISSUE-011](#issue-011) | Timeout validation accepts NaN/INF | bug / P2 | open | 3.0.0 |
+| [ISSUE-001](#issue-001) | Conflicting owners under READ COMMITTED | bug / P0 | resolved (candidate) | 3.0.0 |
+| [ISSUE-002](#issue-002) | A failed liveness check can delete a live lock | bug / P0 | resolved (candidate) | 3.0.0 |
+| [ISSUE-003](#issue-003) | An outer ROLLBACK removes the lock while PHP retains held state | bug / P0 | resolved (candidate) | 3.0.0 |
+| [ISSUE-004](#issue-004) | Successful acquisition can return an expired lease | bug / P1 | resolved (candidate) | 3.0.0 |
+| [ISSUE-005](#issue-005) | SQL latency and retries bypass the expected wait boundary | bug / P1 | resolved (candidate) | 3.0.0 |
+| [ISSUE-006](#issue-006) | exists returns false on a database error | bug / P1 | resolved (candidate) | 3.0.0 |
+| [ISSUE-007](#issue-007) | Resource IDs longer than 50 conflict with schema/README | bug / P1 | resolved (candidate) | 3.0.0 |
+| [ISSUE-008](#issue-008) | PID/CID does not reliably identify TTL=0 ownership | bug / P1 | resolved (candidate) | 3.0.0 |
+| [ISSUE-009](#issue-009) | CI misses the identified interleavings and isolation modes | testing / P1 | resolved (candidate) | 3.0.0 |
+| [ISSUE-010](#issue-010) | Documentation does not fully describe guarantee boundaries | documentation / P1 | resolved (candidate) | 3.0.0 |
+| [ISSUE-011](#issue-011) | Timeout validation accepts NaN/INF | bug / P2 | resolved (candidate) | 3.0.0 |
 | [ISSUE-012](#issue-012) | Lease renewal for long-running operations | enhancement / P2 | deferred | none assigned |
 
 Shared evidence: [probe](../review-2026-09-29/probe.php), [MySQL results](../review-2026-09-29/mysql-results.jsonl), [MariaDB results](../review-2026-09-29/maria-results.jsonl), and [51 existing tests / 140 assertions](../review-2026-09-29/phpunit.log). A passing existing suite does not close the findings.
+
+Closure evidence: [E3 acquisition](../planning/evidence/E3-03.md) and [E3-QA](../planning/qa/E3.md) cover ISSUE-001/003/006/007/011; [E4-QA](../planning/qa/E4.md) and timing/recovery evidence cover ISSUE-002/004/005/008 and downstream ISSUE-006. [E5-01](../planning/evidence/E5-01.md) verifies switching and TTL=0 drain refusal; [E5-02](../planning/evidence/E5-02.md) and the [final candidate manifest](../planning/evidence/E5-04.md) verify ISSUE-009/010 and all final-candidate criteria with six actual RR/RC rows, no required skips, coverage >=90%, installed package parity and corrected consumer guidance. Final independent E5-QA checked these mappings. No technical criterion was waived; operational barriers and lease limits remain documented.
 
 <a id="issue-001"></a>
 ## ISSUE-001. Simultaneous conflicting acquisition

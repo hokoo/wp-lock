@@ -39,7 +39,7 @@
 
 ## E5-03. User and operator documentation
 
-- **Status:** review. **Owner:** DO. **Priority:** P1. **Batch:** B4.
+- **Status:** completed. **Owner:** DO. **Priority:** P1. **Batch:** B4.
 - **Goal:** give consumers accurate usage boundaries and migration instructions.
 - **Scope:** README/CHANGELOG, examples, error/lost-ownership behavior, TTL=0, metadata cache, resource keys, environment matrix, upgrade/rollback, and custom-backend compatibility; explain transactional/idempotent accounting boundaries without implementing an application.
 - **Out of Scope:** exactly-once external effects or designing a consumer payment system.
@@ -51,7 +51,7 @@
 
 ## E5-04. Freeze the final release candidate
 
-- **Status:** review. **Owner:** DO. **Priority:** P1. **Batch:** B5.
+- **Status:** completed. **Owner:** DO. **Priority:** P1. **Batch:** B5.
 - **Goal:** give QA one concrete code/schema/package combination.
 - **Scope:** consistent version metadata/changelog/schema, package-install smoke in an isolated consumer fixture, manifest of changes/artifacts/checks, exact SHA, required merges, and the accepted E1-01 ADR decisions.
 - **Out of Scope:** publishing a release/tag, registry push, or deployment.
@@ -63,7 +63,7 @@
 
 ## E5-QA. Independent final acceptance
 
-- **Status:** review. **Owner:** QA. **Priority:** P0. **Batch:** B5.
+- **Status:** completed. **Owner:** QA. **Priority:** P0. **Batch:** B5.
 - **Goal:** accept the actual deliverable, including migration and documentation.
 - **Scope:** E5 AC, upstream epic state, exact candidate, package smoke, CI evidence, and directed repetition of high-risk migration/failure/rollback paths.
 - **Out of Scope:** deployment or repeating sufficient checks without a concrete reason.
