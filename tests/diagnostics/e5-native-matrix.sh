@@ -182,11 +182,14 @@ foreach (["pcntl_fork", "pcntl_exec", "pcntl_waitpid", "posix_kill"] as $functio
 			"$image" --socket=/suite/mysql.sock --skip-networking > "$rowdir/logs/db-container-id.txt"
 	fi
 	ready=0
+	if [[ "$client" == mysql ]]; then server_pid1=mysqld; else server_pid1=mariadbd; fi
 	for attempt in $(seq 1 90); do
-		if "$docker_bin" exec "$active" "$client" --socket=/suite/mysql.sock --batch --skip-column-names wp_lock_e5_native -e 'SELECT DATABASE()' 2>/dev/null | grep -Fxq wp_lock_e5_native; then ready=1; break; fi
+		pid1=$(timeout --signal=TERM --kill-after=3s 10 "$docker_bin" exec "$active" cat /proc/1/comm 2>/dev/null) || pid1=
+		if [[ "$pid1" == "$server_pid1" ]] && timeout --signal=TERM --kill-after=3s 10 "$docker_bin" exec "$active" "$client" --socket=/suite/mysql.sock --batch --skip-column-names wp_lock_e5_native -e 'SELECT DATABASE()' 2>/dev/null | grep -Fxq wp_lock_e5_native; then ready=1; break; fi
 		sleep 1
 	done
 	[[ "$ready" == 1 ]] || { printf 'Database readiness failed: %s\n' "$label" >&2; exit 2; }
+	printf '%s\n' "$pid1" > "$rowdir/logs/db-pid1-process.txt"
 	"$docker_bin" inspect "$active" --format '{{.HostConfig.NetworkMode}} {{json .HostConfig.Tmpfs}} {{json .NetworkSettings.Ports}}' > "$rowdir/logs/db-isolation.txt"
 	grep -q '^none ' "$rowdir/logs/db-isolation.txt"
 	grep -Fq '/var/lib/mysql' "$rowdir/logs/db-isolation.txt"

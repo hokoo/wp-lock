@@ -147,11 +147,13 @@ docker_short run --rm -d --name "$active_db" --network none \
 	mysql:9.7.2 --socket=/dbsocket/mysql.sock --skip-networking --mysqlx=0 > "$out/logs/db-container-id.txt"
 ready=0
 for attempt in $(seq 1 90); do
-	if timeout --signal=TERM --kill-after=3s 10 "$docker_bin" exec "$active_db" mysql --socket=/dbsocket/mysql.sock \
+	pid1=$(timeout --signal=TERM --kill-after=3s 10 "$docker_bin" exec "$active_db" cat /proc/1/comm 2>/dev/null) || pid1=
+	if [[ "$pid1" == mysqld ]] && timeout --signal=TERM --kill-after=3s 10 "$docker_bin" exec "$active_db" mysql --socket=/dbsocket/mysql.sock \
 		--batch --skip-column-names wp_lock_e5_package -e 'SELECT DATABASE()' 2>/dev/null | rg -Fxq wp_lock_e5_package; then ready=1; break; fi
 	sleep 1
 done
 [[ "$ready" -eq 1 ]] || { printf 'Disposable database did not become ready.\n' >&2; exit 2; }
+printf '%s\n' "$pid1" > "$out/logs/db-pid1-process.txt"
 docker_short inspect "$active_db" --format '{{.HostConfig.NetworkMode}} {{json .HostConfig.Tmpfs}}' > "$out/logs/db-isolation.txt"
 rg -q '^none ' "$out/logs/db-isolation.txt"
 rg -Fq '/var/lib/mysql' "$out/logs/db-isolation.txt"
