@@ -192,6 +192,8 @@ A `pass_with_notes` gate permits only nonblocking notes after every required cri
 
 **E5-04 final-server readiness repair accepted — 2026-10-02:** the stopped worker changed only package/native readiness probes to require the final database process in PID 1 before a bounded SQL read; native rows distinguish MySQL `mysqld` and MariaDB `mariadbd`. Both Bash/whitespace checks passed; root reviewed the seven-line addition and records accepted static repair. Failure artifacts remain. The prior package is not accepted; next implementation commit becomes a new freeze and must pass package smoke plus all-row exact-head candidate CI.
 
+**E5-04 final-server pass / metadata assertion repair — 2026-10-02:** `/tmp/wp-lock-e5-package.RBLBbUC1` confirms corrected readiness, Composer-installed backend origin, exact file parity and actual RR environment, but exits 1 before owners because the information-schema assertion reads an absent lowercase `engine` key. Cleanup/status preservation passed. A bounded PHP-helper repair adds explicit metadata aliases without weakening actual-table engine checks. Next: new freeze and the complete package/remote gates; no candidate acceptance is inferred from partial setup.
+
 ## Transition rules
 
 1. Pull only tasks whose DoR and dependencies are met. Scheduling a batch does not approve a pending ADR choice.

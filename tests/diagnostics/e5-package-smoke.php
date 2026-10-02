@@ -148,8 +148,10 @@ try {
 	need( '2.0.0' === marker( WP_Lock_Backend_DB::SCHEMA_VERSION_OPTION ) &&
 		'3.0.0-foundations' === marker( WP_Lock_Foundations::SCHEMA_OPTION ) &&
 		'3.0.0' === marker( WP_Lock_Foundations::PROTOCOL_OPTION ), 'Schema/protocol markers mismatch.' );
-	$tables = $wpdb->get_results( "SELECT table_name, engine FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('pkg_lock', 'pkg_lock_resource') ORDER BY table_name", ARRAY_A );
-	need( empty( $wpdb->last_error ) && 2 === count( $tables ) && 'InnoDB' === $tables[0]['engine'] && 'InnoDB' === $tables[1]['engine'], 'Foundation tables are not InnoDB.' );
+	$tables = $wpdb->get_results( "SELECT table_name AS smoke_table_name, engine AS smoke_engine FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('pkg_lock', 'pkg_lock_resource') ORDER BY table_name", ARRAY_A );
+	need( empty( $wpdb->last_error ) && 2 === count( $tables ) &&
+		'pkg_lock' === $tables[0]['smoke_table_name'] && 'pkg_lock_resource' === $tables[1]['smoke_table_name'] &&
+		'InnoDB' === $tables[0]['smoke_engine'] && 'InnoDB' === $tables[1]['smoke_engine'], 'Foundation tables are not InnoDB.' );
 	report( array( 'case' => 'markers', 'legacy' => marker( WP_Lock_Backend_DB::SCHEMA_VERSION_OPTION ),
 		'foundation' => marker( WP_Lock_Foundations::SCHEMA_OPTION ), 'protocol' => marker( WP_Lock_Foundations::PROTOCOL_OPTION ),
 		'tables' => $tables ) );
