@@ -65,9 +65,11 @@ Only these exact integer constants are accepted. Numeric strings and other value
 
 ### Blocking and database retries
 
-The bundled database backend polls for at most 30 seconds by default when `$blocking` is `true`. This wait limit is separate from the acquired lock's expiration. Non-blocking acquisition does not wait.
+The bundled database backend uses a monotonic 30-second wait budget by default when `$blocking` is `true`. Contention polling and database-error retries share that budget. A zero budget or non-blocking call makes one database acquisition attempt without polling. A synchronous database call can finish after the budget, so this is not a hard wall-clock return limit. The wait budget is separate from the acquired lock's expiration.
 
 Failed acquisition queries are retried up to three times after the initial query. A persistent database error throws `RuntimeException`; contention itself returns `false` and is not treated as a database error.
+
+If a committed acquisition finishes after a positive wait budget, the backend returns `false` only after confirming deletion of that exact owner. An unknown commit or failed cleanup raises `WP_Lock_Ownership_Uncertain`; keep the lock object and call `release()` to reconcile it.
 
 The database backend settings can be customized explicitly:
 

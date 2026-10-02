@@ -699,6 +699,221 @@ class WP_Lock_Backend_DB_UnitTestCase extends WP_UnitTestCase {
 		$this->assertSame( 0, $this->count_owners( $id ) );
 	}
 
+	public function test_slow_database_time_read_exhausts_wait_before_owner_insert(): void {
+		$id = uniqid( 'slow_wait_', true );
+		$lock = new WP_Lock( $id, new WP_Lock_Backend_DB( 0.02, 3 ) );
+		$delayed = false;
+		$inserts = 0;
+		$filter = function( $query ) use ( &$delayed, &$inserts ) {
+			if ( ! $delayed && 'SELECT UNIX_TIMESTAMP(NOW(6))' === $query ) {
+				$delayed = true;
+				usleep( 70000 );
+			}
+			if ( false !== strpos( $query, 'INSERT INTO `' ) && false !== strpos( $query, 'attempt_token' ) ) {
+				++$inserts;
+			}
+			return $query;
+		};
+		add_filter( 'query', $filter );
+		try {
+			$this->assertFalse( $lock->acquire( WP_Lock::WRITE, true, 0 ) );
+		} finally {
+			remove_filter( 'query', $filter );
+		}
+		$this->assertTrue( $delayed );
+		$this->assertSame( 0, $inserts );
+		$this->assertSame( 0, $this->count_owners( $id ) );
+	}
+
+	public function test_slow_transaction_start_rolls_back_before_resource_sql(): void {
+		$id = uniqid( 'slow_start_', true );
+		$starts = 0;
+		$rollbacks = 0;
+		$resource_inserts = 0;
+		$filter = function( $query ) use ( &$starts, &$rollbacks, &$resource_inserts ) {
+			if ( 'START TRANSACTION' === $query ) { ++$starts; usleep( 70000 ); }
+			if ( 'ROLLBACK' === $query ) { ++$rollbacks; }
+			if ( false !== strpos( $query, 'INSERT INTO `' ) && false !== strpos( $query, 'lock_resource`' ) ) { ++$resource_inserts; }
+			return $query;
+		};
+		add_filter( 'query', $filter );
+		try {
+			$this->assertFalse( ( new WP_Lock( $id, new WP_Lock_Backend_DB( 0.02, 0 ) ) )->acquire( WP_Lock::WRITE, true, 0 ) );
+		} finally {
+			remove_filter( 'query', $filter );
+		}
+		$this->assertSame( 1, $starts );
+		$this->assertSame( 1, $rollbacks );
+		$this->assertSame( 0, $resource_inserts );
+	}
+
+	public function test_slow_resource_upsert_stops_before_locking_read(): void {
+		$id = uniqid( 'slow_resource_', true );
+		$upserts = 0;
+		$reads = 0;
+		$rollbacks = 0;
+		$filter = function( $query ) use ( &$upserts, &$reads, &$rollbacks ) {
+			if ( false !== strpos( $query, 'INSERT INTO `' ) && false !== strpos( $query, 'lock_resource`' ) ) { ++$upserts; usleep( 70000 ); }
+			if ( false !== strpos( $query, 'SELECT lock_key FROM `' ) && false !== strpos( $query, 'lock_resource`' ) ) { ++$reads; }
+			if ( 'ROLLBACK' === $query ) { ++$rollbacks; }
+			return $query;
+		};
+		add_filter( 'query', $filter );
+		try {
+			$this->assertFalse( ( new WP_Lock( $id, new WP_Lock_Backend_DB( 0.02, 0 ) ) )->acquire( WP_Lock::WRITE, true, 0 ) );
+		} finally {
+			remove_filter( 'query', $filter );
+		}
+		$this->assertSame( 1, $upserts );
+		$this->assertSame( 0, $reads );
+		$this->assertSame( 1, $rollbacks );
+		$this->assertSame( 0, $this->count_owners( $id ) );
+	}
+
+	public function test_expired_wait_with_failed_rollback_is_uncertain(): void {
+		$id = uniqid( 'slow_rollback_', true );
+		$upserts = 0;
+		$rollbacks = 0;
+		$filter = function( $query ) use ( &$upserts, &$rollbacks ) {
+			if ( false !== strpos( $query, 'INSERT INTO `' ) && false !== strpos( $query, 'lock_resource`' ) ) { ++$upserts; usleep( 70000 ); }
+			if ( 'ROLLBACK' === $query ) { ++$rollbacks; return 'SELECT * FROM wp_lock_missing_injected_table'; }
+			return $query;
+		};
+		add_filter( 'query', $filter );
+		try {
+			$this->expectException( WP_Lock_Ownership_Uncertain::class );
+			( new WP_Lock( $id, new WP_Lock_Backend_DB( 0.02, 0 ) ) )->acquire( WP_Lock::WRITE, true, 0 );
+		} finally {
+			remove_filter( 'query', $filter );
+			$this->assertSame( 1, $upserts );
+			$this->assertSame( 1, $rollbacks );
+		}
+	}
+
+	public function test_slow_diagnostic_lookup_stops_before_owner_insert(): void {
+		$id = uniqid( 'slow_diagnostic_', true ) . chr( 195 ) . chr( 169 );
+		$lookups = 0;
+		$inserts = 0;
+		$lookup = function( $charset ) use ( &$lookups ) { ++$lookups; usleep( 70000 ); return 'utf8mb4'; };
+		$filter = function( $query ) use ( &$inserts ) {
+			if ( false !== strpos( $query, 'INSERT INTO `' ) && false !== strpos( $query, 'attempt_token' ) ) { ++$inserts; }
+			return $query;
+		};
+		add_filter( 'pre_get_col_charset', $lookup );
+		add_filter( 'query', $filter );
+		try {
+			$this->assertFalse( ( new WP_Lock( $id, new WP_Lock_Backend_DB( 0.02, 0 ) ) )->acquire( WP_Lock::WRITE, true, 0 ) );
+		} finally {
+			remove_filter( 'pre_get_col_charset', $lookup );
+			remove_filter( 'query', $filter );
+		}
+		$this->assertSame( 1, $lookups );
+		$this->assertSame( 0, $inserts );
+		$this->assertSame( 0, $this->count_owners( $id ) );
+	}
+
+	public function test_expired_sql_retry_reports_error_without_proven_conflict(): void {
+		$id = uniqid( 'slow_error_', true );
+		$failed = false;
+		$filter = function( $query ) use ( &$failed ) {
+			if ( ! $failed && false !== strpos( $query, 'SELECT id, level, expire, attempt_token FROM `' ) ) {
+				$failed = true;
+				usleep( 70000 );
+				return 'SELECT * FROM wp_lock_missing_injected_table';
+			}
+			return $query;
+		};
+		add_filter( 'query', $filter );
+		try {
+			( new WP_Lock( $id, new WP_Lock_Backend_DB( 0.02, 3 ) ) )->acquire( WP_Lock::WRITE, true, 0 );
+			$this->fail( 'Expired SQL failure returned an ordinary result.' );
+		} catch ( RuntimeException $error ) {
+			$this->assertStringContainsString( 'database error', $error->getMessage() );
+		} finally {
+			remove_filter( 'query', $filter );
+		}
+		$this->assertTrue( $failed );
+		$this->assertSame( 0, $this->count_owners( $id ) );
+	}
+
+	public function test_proven_conflict_supersedes_earlier_sql_error_at_deadline(): void {
+		$id = uniqid( 'error_then_conflict_', true );
+		$owner = new WP_Lock( $id );
+		$this->assertTrue( $owner->acquire( WP_Lock::WRITE, false, 0 ) );
+		$reads = 0;
+		$filter = function( $query ) use ( &$reads ) {
+			if ( false !== strpos( $query, 'SELECT id, level, expire, attempt_token FROM `' ) ) {
+				++$reads;
+				if ( 1 === $reads ) {
+					return 'SELECT * FROM wp_lock_missing_injected_table';
+				}
+			}
+			return $query;
+		};
+		add_filter( 'query', $filter );
+		try {
+			$this->assertFalse( ( new WP_Lock( $id, new WP_Lock_Backend_DB( 0.4, 3 ) ) )->acquire( WP_Lock::WRITE, true, 0 ) );
+		} finally {
+			remove_filter( 'query', $filter );
+			$owner->release();
+		}
+		$this->assertGreaterThanOrEqual( 2, $reads );
+		$this->assertSame( 0, $this->count_owners( $id ) );
+	}
+
+	public function test_zero_wait_still_allows_first_attempt_without_polling(): void {
+		$id = uniqid( 'zero_wait_', true );
+		$owner = new WP_Lock( $id, new WP_Lock_Backend_DB( 0, 3 ) );
+		$this->assertTrue( $owner->acquire( WP_Lock::WRITE, true, 0 ) );
+		$reads = 0;
+		$filter = function( $query ) use ( &$reads ) {
+			if ( false !== strpos( $query, 'SELECT id, level, expire, attempt_token FROM `' ) ) {
+				++$reads;
+			}
+			return $query;
+		};
+		add_filter( 'query', $filter );
+		try {
+			$this->assertFalse( ( new WP_Lock( $id, new WP_Lock_Backend_DB( 0, 3 ) ) )->acquire( WP_Lock::WRITE, true, 0 ) );
+			$this->assertFalse( ( new WP_Lock( $id, new WP_Lock_Backend_DB( 1, 3 ) ) )->acquire( WP_Lock::WRITE, false, 0 ) );
+		} finally {
+			remove_filter( 'query', $filter );
+			$owner->release();
+		}
+		$this->assertSame( 2, $reads );
+	}
+
+	public function test_late_commit_with_failed_cleanup_retains_attempt_for_release(): void {
+		$id = uniqid( 'late_cleanup_', true );
+		$backend = new WP_Lock_Backend_DB( 0.02, 0 );
+		$lock = new WP_Lock( $id, $backend );
+		$commits = 0;
+		$delayed = function( $query ) use ( &$commits ) {
+			if ( 'COMMIT' === $query && 1 === ++$commits ) {
+				usleep( 70000 );
+			}
+			return $query;
+		};
+		$injected = false;
+		$failed_delete = $this->zero_delete_once( $id, $injected );
+		add_filter( 'query', $delayed );
+		try {
+			$lock->acquire( WP_Lock::WRITE, true, 0 );
+			$this->fail( 'Failed late cleanup must report uncertain ownership.' );
+		} catch ( WP_Lock_Ownership_Uncertain $expected ) {
+			$this->assertTrue( $backend->has_unresolved( $id ) );
+		} finally {
+			remove_filter( 'query', $delayed );
+			remove_filter( 'query', $failed_delete );
+		}
+		$this->assertSame( 1, $commits );
+		$this->assertTrue( $injected );
+		$this->assertSame( 1, $this->count_owners( $id ) );
+		$lock->release();
+		$this->assertFalse( $backend->has_unresolved( $id ) );
+		$this->assertSame( 0, $this->count_owners( $id ) );
+	}
+
 	public function test_uncertain_commit_is_reconciled_before_retrying_acquire(): void {
 		$id = uniqid( 'reconcile_acquire_', true );
 		$backend = new WP_Lock_Backend_DB( 0, 0 );

@@ -86,11 +86,14 @@ final class WP_Lock_Foundations {
 		return $wpdb->prefix;
 	}
 
-	public static function open( ?string $namespace = null ): self {
+	public static function open( ?string $namespace = null, ?callable $wait_guard = null ): self {
 		global $wpdb;
 		$namespace = null === $namespace ? self::namespace() : $namespace;
-		$session = self::connect( $namespace );
+		$session = self::connect( $namespace, $wait_guard );
 		try {
+			if ( null !== $wait_guard ) {
+				$wait_guard();
+			}
 			$level = self::session_isolation( $wpdb );
 			$session->isolation( $level );
 			self::verify_schema( $session->db, $namespace );
@@ -102,7 +105,7 @@ final class WP_Lock_Foundations {
 		}
 	}
 
-	private static function connect( string $namespace ): self {
+	private static function connect( string $namespace, ?callable $wait_guard = null ): self {
 		global $wpdb;
 
 		if ( ! preg_match( '/\A[A-Za-z0-9_]+\z/D', $namespace ) || get_class( $wpdb ) !== 'wpdb' ||
@@ -110,9 +113,12 @@ final class WP_Lock_Foundations {
 			throw new \RuntimeException( 'Independent primary routing cannot be established.' );
 		}
 
+		if ( null !== $wait_guard ) {
+			$wait_guard();
+		}
 		$caller = self::route( $wpdb );
 		require_once __DIR__ . '/class-wp-lock-foundation-db.php';
-		$db = new WP_Lock_Foundation_DB( DB_USER, DB_PASSWORD, DB_NAME, DB_HOST );
+		$db = new WP_Lock_Foundation_DB( DB_USER, DB_PASSWORD, DB_NAME, DB_HOST, $wait_guard );
 		$db->suppress_errors( true );
 		try {
 			$route = self::route( $db );
@@ -268,6 +274,9 @@ final class WP_Lock_Foundations {
 
 	private function checked( string $sql, bool $rows = false, string $tag = 'unspecified' ) {
 		$this->assert_connection();
+		if ( 'owner-insert' === $tag ) {
+			$this->db->finish_wait_on_next_query();
+		}
 		$result = $rows ? $this->db->get_results( $sql, ARRAY_A ) : $this->db->query( $sql );
 		if ( false === $result || ! empty( $this->db->last_error ) ) {
 			$operation = preg_match( '/\A\s*(SELECT|INSERT|DELETE|UPDATE|COMMIT|ROLLBACK|START|SET|CREATE|ALTER)\b/i', $sql, $matches ) ? strtoupper( $matches[1] ) : 'OTHER';
@@ -279,6 +288,9 @@ final class WP_Lock_Foundations {
 				null === $sqlstate ? 'unavailable' : $sqlstate
 			), null === $errno ? 0 : $errno );
 		}
+		if ( 'transaction-begin' === $tag ) {
+			$this->in_transaction = true;
+		}
 		$this->assert_connection();
 		return $result;
 	}
@@ -286,6 +298,8 @@ final class WP_Lock_Foundations {
 	private function assert_connection(): void {
 		try {
 			$route = self::route( $this->db );
+		} catch ( WP_Lock_Wait_Expired $error ) {
+			throw $error;
 		} catch ( \RuntimeException $error ) {
 			throw new WP_Lock_Ownership_Uncertain( 'Lock foundation session changed or is unavailable; outcome uncertain.', 0, $error );
 		}
@@ -341,7 +355,6 @@ final class WP_Lock_Foundations {
 		}
 		$this->verified_isolation();
 		$this->checked( 'START TRANSACTION', false, 'transaction-begin' );
-		$this->in_transaction = true;
 	}
 
 	public function begin_resource( string $id ): void {
@@ -452,6 +465,7 @@ final class WP_Lock_Foundations {
 		if ( ! $this->in_transaction ) {
 			throw new \LogicException( 'No foundation transaction to roll back.' );
 		}
+		$this->db->finish_wait();
 		$this->checked( 'ROLLBACK', false, 'transaction-rollback' );
 		$this->in_transaction = false;
 		$this->resource_locked = false;
