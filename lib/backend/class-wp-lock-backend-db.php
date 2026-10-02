@@ -150,7 +150,10 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 			$deleted = false;
 			foreach ( $session->current_owners( $lock_id ) as $owner ) {
 				if ( 0.0 !== (float) $owner['expire'] && (float) $owner['expire'] <= $now ) {
-					$deleted = 1 === $session->delete_owner( $lock_id, (int) $owner['id'], $owner['attempt_token'] ) || $deleted;
+					if ( 1 !== $session->delete_owner( $lock_id, (int) $owner['id'], $owner['attempt_token'] ) ) {
+						throw new \RuntimeException( 'The expired lock owner could not be deleted.' );
+					}
+					$deleted = true;
 				}
 			}
 			$session->commit();

@@ -270,3 +270,4 @@ use iTRON\WP_Lock\WP_Lock_Ownership_Uncertain;
 			$lock->release();
 			check( ! $backend->has_unresolved( $id ) && 0 === count_owners( $id ), 'Timed commit reconciliation failed.' );
 		} );
+		require __DIR__ . '/e4-recovery-cases.php';

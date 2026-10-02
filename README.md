@@ -96,6 +96,8 @@ Resource identity uses the MD5 of the complete string ID. The optional `original
 
 Use `try`/`finally` and release every acquired lock. The primary database clock starts a finite lease after the resource row is locked. A successful `acquire()` means the lease had remaining TTL at the last database-time check after commit; it does not guarantee the lease will still exist after a later PHP pause. Choose a finite TTL longer than the maximum expected duration of the protected work, with margin for scheduling and database delays. Expiry cannot fence a stalled caller's application writes. A later `release()` that observes expiry reports `WP_Lock_Ownership_Lost` and clears the confirmed handle.
 
+If a TTL=0 owner survives its operation and cannot be reconciled with the same lock object, follow the [manual recovery procedure](docs/recovery.md) with an admissions barrier and verified owner termination. Failed visibility or PID/CID checks do not prove that a row is stale. The backend's expired-owner cleanup applies only to finite TTL rows.
+
 ### Checking lock existence
 
 `lock_exists()` checks for an unexpired lock at the requested level without acquiring it:
