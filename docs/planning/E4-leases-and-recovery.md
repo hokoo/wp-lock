@@ -1,6 +1,8 @@
 # E4. Timing, errors, and recovery
 
 **Target version:** 3.0.0 — planned; see [ROADMAP](../../ROADMAP.md#v300).
+**Root model:** `gpt-6-astra` — recommendation accepted by OWNER on 2026-10-02.
+**Selection rationale:** integrate lease/deadline, uncertain ownership and commit, cleanup, and recovery guarantees; see [OpenAI model guidance](https://developers.openai.com/api/docs/models).
 **Issues:** [ISSUE-002](../issues/README.md#issue-002), [ISSUE-004](../issues/README.md#issue-004), [ISSUE-005](../issues/README.md#issue-005), [ISSUE-006](../issues/README.md#issue-006), [ISSUE-008](../issues/README.md#issue-008).
 
 **Outcome:** acquisition and inspection have defined lease, deadline, error, and recovery behavior.
@@ -13,7 +15,7 @@
 
 ## E4-01. Lease time and lost ownership
 
-- **Status:** waiting_dependency. **Owner:** DEV. **Priority:** P1. **Batch:** B3.
+- **Status:** review. **Owner:** DEV. **Priority:** P1. **Batch:** B3.
 - **Goal:** grant a usable lease under the accepted time source and report observed loss.
 - **Scope:** authoritative time per ADR, start after required serialization, remaining-TTL check before success, expiry/takeover, PHP held state, and directed slow-SQL/clock tests.
 - **Out of Scope:** renewal or protecting arbitrary application writes after expiry.
@@ -25,7 +27,7 @@
 
 ## E4-02. Finite deadline, retry, and late outcomes
 
-- **Status:** waiting_dependency. **Owner:** DEV. **Priority:** P1. **Batch:** B3.
+- **Status:** review. **Owner:** DEV. **Priority:** P1. **Batch:** B3.
 - **Goal:** make every retry path honor the defined waiting budget and ownership result.
 - **Scope:** monotonic elapsed budget, checks around SQL and retries, finite inputs, contention/error distinction, late success and cleanup, and directed faults.
 - **Out of Scope:** a hard wall-clock SLA unsupported by the DB driver.
@@ -37,7 +39,7 @@
 
 ## E4-03. Conservative cleanup and verified manual recovery
 
-- **Status:** waiting_dependency. **Owner:** DEV + DO. **Priority:** P1. **Batch:** B3.
+- **Status:** review. **Owner:** DEV + DO. **Priority:** P1. **Batch:** B3.
 - **Goal:** preserve uncertain ownership and give operators a verified way to resolve TTL=0 owners.
 - **Scope:** consume E3-03's public `exists()` error result and retryable failed `release()` state; handle ghost/liveness failures and cleanup DELETE uncertainty conservatively, preserve serialized successor safety, and verify the TTL=0 recovery runbook with directed fault/procedure tests.
 - **Out of Scope:** distributed PID/CID liveness system, automatic reclamation on unknown identity, or production record deletion.

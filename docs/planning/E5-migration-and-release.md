@@ -1,6 +1,8 @@
 # E5. Verified migration and the 3.0.0 candidate
 
 **Target version:** 3.0.0 — planned; see [ROADMAP](../../ROADMAP.md#v300).
+**Root model:** `gpt-6.1-sol` — recommendation accepted by OWNER on 2026-10-02.
+**Selection rationale:** coordinate migration rehearsals, CI, documentation, and candidate acceptance against agreed upstream contracts; see [OpenAI model guidance](https://developers.openai.com/api/docs/models).
 **Issues:** [ISSUE-009](../issues/README.md#issue-009), [ISSUE-010](../issues/README.md#issue-010); final acceptance gate for ISSUE-001–011.
 
 **Outcome:** the next release has verified installation/migration, required CI, documentation, and a concrete package ready for a publication decision.
