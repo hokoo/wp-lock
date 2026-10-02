@@ -175,6 +175,8 @@ A `pass_with_notes` gate permits only nonblocking notes after every required cri
 
 **E5-02 accepted local matrix boundary — 2026-10-02:** the stopped monitor passed all six D1 native rows at RR/RC on the corrected staged boundary: 12 full suites, each 107 tests/488 assertions/zero skips, with actual versions/isolation/InnoDB/writable-primary, both source parity checks and successful cleanup. [E5-02 evidence](evidence/E5-02.md#accepted-local-runtime--2026-10-02) names exact command, hashes and `/tmp/wp-lock-e5-native.3fBur6P6`. Root accepted local runtime and records concise evidence only. Next: commit/push E5-02, observe exact-head required remote CI and candidate dispatch; E5-03 can run while remote observation uses the frozen commit. E5-02 remains `review` pending remote gates and B4 merge.
 
+**E5-02 remote / E5-03 review boundary — 2026-10-02:** [candidate CI 37017103295](https://github.com/hokoo/wp-lock/actions/runs/37017103295) on `4dee988` passed all 12 jobs and 12 native RR/RC suites without skips; coverage passed 612/657 (93.15%). Exact-head regular PR CI also passed. The stopped E5-03 worker updated README/CHANGELOG and two comment-only acquisition docblocks; syntax, link/anchor and whitespace checks passed. Independent read-only `/root/b4_ci_map` found one timeout-example contradiction, repaired in a bounded worker turn; root accepted the corrected four-path documentation diff. E5-01–03 remain `review` pending B4 merge. Root records this checkpoint and remote evidence only. Next: final B4 commit/CI/PR review and merge, then B5 candidate packaging.
+
 ## B5. Candidate and handoff
 
 - **Input:** delivered E5-01–03, required merges, accepted upstream QA.

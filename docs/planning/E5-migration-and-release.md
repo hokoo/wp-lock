@@ -39,7 +39,7 @@
 
 ## E5-03. User and operator documentation
 
-- **Status:** todo. **Owner:** DO. **Priority:** P1. **Batch:** B4.
+- **Status:** review. **Owner:** DO. **Priority:** P1. **Batch:** B4.
 - **Goal:** give consumers accurate usage boundaries and migration instructions.
 - **Scope:** README/CHANGELOG, examples, error/lost-ownership behavior, TTL=0, metadata cache, resource keys, environment matrix, upgrade/rollback, and custom-backend compatibility; explain transactional/idempotent accounting boundaries without implementing an application.
 - **Out of Scope:** exactly-once external effects or designing a consumer payment system.

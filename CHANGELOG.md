@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] - planned 3.0.0
+
+### Changed
+
+- Use a permanent InnoDB resource row and an independent primary connection to coordinate shared READ and exclusive WRITE acquisitions under REPEATABLE READ and READ COMMITTED.
+- Preserve the complete resource ID for MD5 key derivation; store `original_key` only when its complete value fits the diagnostic column.
+- Give finite leases database-time expiry checks and exact-owner release; distinguish contention, database errors, uncertain outcomes, and confirmed ownership loss.
+
+### Migration
+
+- Require a coordinated stop, drain, verify, protocol switch, and restart for 2.0 ↔ 3.0. Rolling coexistence is unsupported; TTL=0 and uncertain owners require explicit resolution. See the [operator procedure](docs/migration.md).
+- Keep the legacy owner-table schema marker at `2.0.0`; the additive foundation and protocol markers are separate. Rollback to 2.0 retains its known READ COMMITTED conflict risk.
+
 ## [2.0.0] - 2026-09-13
 
 ### Added

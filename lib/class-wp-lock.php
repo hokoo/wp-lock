@@ -75,17 +75,16 @@ class WP_Lock {
 	/**
 	 * Acquire a lock.
 	 *
-	 * @todo Write more about locks and their dangers here.
+	 * Locks coordinate only participants using the same resource and backend.
+	 * Expiry does not fence work already running; release in a finally block.
 	 *
 	 * @param int  $level      Lock level. One of:
 	 *                             WP_Lock::READ
 	 *                             WP_Lock::WRITE
 	 *                         Default: WP_Lock::WRITE
 	 * @param bool $blocking   Whether acquiring the lock blocks or not. Default: true.
-	 * @param int  $expiration Auto-release after $expiration seconds. Default: 30
-	 *                         Setting this value to 0 can cause zombie locks that
-	 *                         will linger forever (even across reboots) if you don't
-	 *                         know what you are doing.
+	 * @param int  $expiration Lease TTL in seconds. Default: 30. Zero never expires
+	 *                         and may require manual recovery after a crash.
 	 *
 	 * @return bool Whether the lock has been acquired or not.
 	 */
