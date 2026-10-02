@@ -177,12 +177,16 @@ A `pass_with_notes` gate permits only nonblocking notes after every required cri
 
 **E5-02 remote / E5-03 review boundary — 2026-10-02:** [candidate CI 37017103295](https://github.com/hokoo/wp-lock/actions/runs/37017103295) on `4dee988` passed all 12 jobs and 12 native RR/RC suites without skips; coverage passed 612/657 (93.15%). Exact-head regular PR CI also passed. The stopped E5-03 worker updated README/CHANGELOG and two comment-only acquisition docblocks; syntax, link/anchor and whitespace checks passed. Independent read-only `/root/b4_ci_map` found one timeout-example contradiction, repaired in a bounded worker turn; root accepted the corrected four-path documentation diff. E5-01–03 remain `review` pending B4 merge. Root records this checkpoint and remote evidence only. Next: final B4 commit/CI/PR review and merge, then B5 candidate packaging.
 
+**B4 delivered / B5 start — 2026-10-02:** [PR #14](https://github.com/hokoo/wp-lock/pull/14) merged as `02ebd114` into `release/3.0` after final exact-head candidate/PR CI passed. Merge/head trees match; E5-01–03 move to `completed`. `batch/b5` starts from that merge; E5-04 is now `in_progress` in a new bounded reused-worker turn, followed by exact-package smoke, candidate CI and independent final acceptance. Root records delivery bookkeeping only; local AGENTS stays excluded. No tag, publication or rollout is authorized.
+
 ## B5. Candidate and handoff
 
 - **Input:** delivered E5-01–03, required merges, accepted upstream QA.
 - **Order:** E5-04 freezes exact revision/package and metadata; E5-QA independently reviews candidate, migration, CI, and issue closure; DO hands evidence to OWNER.
 - **Verification:** package installation, metadata, critical migration/rollback paths, actual CI results, and all ISSUE-001–011 criteria.
 - **Completion boundary:** verified candidate and handoff. Tagging, publication, and rollout need separate authorization.
+
+**E5-04 frozen implementation review — 2026-10-02:** the stopped reused worker updates unpublished 3.0.0 metadata and adds two dedicated package-smoke helpers plus a manifest draft. Static PHP/bash/Composer JSON/link/whitespace checks passed; root reviewed tracked-commit export, mirrored Composer installation/source parity, independent held READ/WRITE owners, exact release, marker validation and bounded container cleanup. Root also reconciled historical ADR verification status without changing decisions or procedures. E5-04 moves to `review`, pending frozen-SHA smoke, candidate CI, manifest evidence and B5 merge. Next: commit the implementation, test-monitor package smoke and exact-head CI, then independent acceptance. User AGENTS stays excluded; no technical criterion is waived.
 
 ## Transition rules
 

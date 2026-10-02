@@ -15,7 +15,7 @@
 
 ## E5-01. Implement and rehearse upgrade/rollback
 
-- **Status:** review. **Owner:** DEV + DO. **Priority:** P1. **Batch:** B4.
+- **Status:** completed. **Owner:** DEV + DO. **Priority:** P1. **Batch:** B4.
 - **Goal:** switch protocols without allowing independent incompatible owners.
 - **Scope:** accepted migration/install hooks, complete schema verification, stopping new acquisitions, owner drain and TTL=0 resolution, clean install/upgrade/partial failure/rollback rehearsals on temporary databases.
 - **Out of Scope:** production switching or deleting unknown active owners.
@@ -27,7 +27,7 @@
 
 ## E5-02. Required CI matrix and coverage
 
-- **Status:** review. **Owner:** TEST. **Priority:** P1. **Batch:** B4.
+- **Status:** completed. **Owner:** TEST. **Priority:** P1. **Batch:** B4.
 - **Goal:** ownership regressions block delivery on supported configurations.
 - **Scope:** workflow and test helpers/configuration; retain D1 PHP coverage, add MySQL/MariaDB × RR/RC checks, required process-control preflight, deadlines/evidence capture, and the current >=90% coverage gate.
 - **Out of Scope:** an unjustified full PHP/WP/DB Cartesian product and independent load benchmarking.
@@ -39,7 +39,7 @@
 
 ## E5-03. User and operator documentation
 
-- **Status:** review. **Owner:** DO. **Priority:** P1. **Batch:** B4.
+- **Status:** completed. **Owner:** DO. **Priority:** P1. **Batch:** B4.
 - **Goal:** give consumers accurate usage boundaries and migration instructions.
 - **Scope:** README/CHANGELOG, examples, error/lost-ownership behavior, TTL=0, metadata cache, resource keys, environment matrix, upgrade/rollback, and custom-backend compatibility; explain transactional/idempotent accounting boundaries without implementing an application.
 - **Out of Scope:** exactly-once external effects or designing a consumer payment system.
@@ -51,7 +51,7 @@
 
 ## E5-04. Freeze the final release candidate
 
-- **Status:** waiting_dependency. **Owner:** DO. **Priority:** P1. **Batch:** B5.
+- **Status:** review. **Owner:** DO. **Priority:** P1. **Batch:** B5.
 - **Goal:** give QA one concrete code/schema/package combination.
 - **Scope:** consistent version metadata/changelog/schema, package-install smoke in an isolated consumer fixture, manifest of changes/artifacts/checks, exact SHA, required merges, and the accepted E1-01 ADR decisions.
 - **Out of Scope:** publishing a release/tag, registry push, or deployment.

@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased] - planned 3.0.0
+## [Unreleased] - 3.0.0 candidate
 
 ### Changed
 

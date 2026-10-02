@@ -4,7 +4,7 @@
 
 WP Lock provides shared READ locks and exclusive WRITE locks for WordPress. Its only bundled backend uses the WordPress database.
 
-The unreleased 3.0 backend uses a permanent resource row and an independent primary database session for ownership changes. Its schema must be prepared and its protocol explicitly enabled under the [migration barrier](docs/migration.md) before new acquisitions. Version 2 and 3 participants must never run together for the same database namespace.
+The unpublished 3.0.0 candidate uses a permanent resource row and an independent primary database session for ownership changes. Its schema must be prepared and its protocol explicitly enabled under the [migration barrier](docs/migration.md) before new acquisitions. Version 2 and 3 participants must never run together for the same database namespace.
 
 See the [project roadmap](ROADMAP.md) for planned versions, [known issues](docs/issues/README.md) for findings and evidence, and [epics and tasks](docs/planning/README.md) for execution details.
 
