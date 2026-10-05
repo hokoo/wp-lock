@@ -9,7 +9,7 @@ class WP_Lock {
 	 * @var int A non-exclusive protected read lock.
 	 * Other processes can read, but not write. A shared lock.
 	 */
-	const READ  = 8;
+	const READ = 8;
 
 	/**
 	 * @var int An exclusive write lock.
@@ -31,7 +31,8 @@ class WP_Lock {
 	/**
 	 * @var bool Whether this instance currently holds a lock.
 	 */
-	private $held = false;
+	private $held       = false;
+	private $unresolved = false;
 
 	/**
 	 * Create a resource concurrency lock.
@@ -64,27 +65,29 @@ class WP_Lock {
 
 		$this->lock_backend = $lock_backend;
 
-		register_shutdown_function( function( $lock ) {
-			if ( $lock->held ) {
-				trigger_error( 'Not all locks released for ' . $lock->id );
-			}
-		}, $this );
+		register_shutdown_function(
+			function ( $lock ) {
+				if ( $lock->held || $lock->unresolved ) {
+						trigger_error( 'Not all locks released for ' . $lock->id );
+				}
+			},
+			$this
+		);
 	}
 
 	/**
 	 * Acquire a lock.
 	 *
-	 * @todo Write more about locks and their dangers here.
+	 * Locks coordinate only participants using the same resource and backend.
+	 * Expiry does not fence work already running; release in a finally block.
 	 *
 	 * @param int  $level      Lock level. One of:
 	 *                             WP_Lock::READ
 	 *                             WP_Lock::WRITE
 	 *                         Default: WP_Lock::WRITE
 	 * @param bool $blocking   Whether acquiring the lock blocks or not. Default: true.
-	 * @param int  $expiration Auto-release after $expiration seconds. Default: 30
-	 *                         Setting this value to 0 can cause zombie locks that
-	 *                         will linger forever (even across reboots) if you don't
-	 *                         know what you are doing.
+	 * @param int  $expiration Lease TTL in seconds. Default: 30. Zero never expires
+	 *                         and may require manual recovery after a crash.
 	 *
 	 * @return bool Whether the lock has been acquired or not.
 	 */
@@ -96,7 +99,12 @@ class WP_Lock {
 			throw new \LogicException( 'This WP_Lock instance already holds a lock.' );
 		}
 
-		if ( ! $this->lock_backend->acquire( $this->id, $level, $blocking, $expiration ) ) {
+		try {
+			$acquired = $this->lock_backend->acquire( $this->id, $level, $blocking, $expiration );
+		} finally {
+			$this->unresolved = $this->lock_backend instanceof WP_Lock_Backend_DB && $this->lock_backend->has_unresolved( $this->id );
+		}
+		if ( ! $acquired ) {
 			return false;
 		}
 
@@ -111,15 +119,21 @@ class WP_Lock {
 	 * @return void
 	 */
 	public function release(): void {
-		if ( ! $this->held ) {
+		if ( ! $this->held && ! $this->unresolved ) {
 			throw new \LogicException( 'This WP_Lock instance does not hold a lock.' );
 		}
 
-		if ( ! $this->lock_backend->release( $this->id ) ) {
-			throw new \RuntimeException( 'The backend failed to release the lock.' );
+		try {
+			if ( ! $this->lock_backend->release( $this->id ) ) {
+				throw new \RuntimeException( 'The backend failed to release the lock.' );
+			}
+		} catch ( WP_Lock_Ownership_Lost $error ) {
+			$this->held = false;
+			throw $error;
 		}
 
-		$this->held = false;
+		$this->held       = false;
+		$this->unresolved = false;
 	}
 
 	/**

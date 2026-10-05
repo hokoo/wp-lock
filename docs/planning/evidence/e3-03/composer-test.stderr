@@ -1,0 +1,1 @@
+> phpunit '--bootstrap' '/tmp/wp-lock-b2-upsert-suite.onvRhH/phpunit-bootstrap.php'

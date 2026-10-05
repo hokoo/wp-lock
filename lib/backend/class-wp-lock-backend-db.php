@@ -4,20 +4,25 @@ namespace iTRON\WP_Lock;
 
 use iTRON\WP_Lock\helpers\Database;
 
+class WP_Lock_Ownership_Uncertain extends \RuntimeException {}
+class WP_Lock_Ownership_Lost extends \RuntimeException {}
+class WP_Lock_Wait_Expired extends \RuntimeException {}
+
 class WP_Lock_Backend_DB implements WP_Lock_Backend {
-	const TABLE_NAME = 'lock';
-	const SCHEMA_VERSION = '2.0.0';
-	const SCHEMA_VERSION_OPTION = 'wp_lock_db_schema_version';
-	const DEFAULT_BLOCKING_TIMEOUT = 30.0;
-	const DEFAULT_DB_ERROR_RETRIES = 3;
+	const TABLE_NAME                 = 'lock';
+	const SCHEMA_VERSION             = '2.0.0';
+	const SCHEMA_VERSION_OPTION      = 'wp_lock_db_schema_version';
+	const DEFAULT_BLOCKING_TIMEOUT   = 30.0;
+	const DEFAULT_DB_ERROR_RETRIES   = 3;
 	const POLL_INTERVAL_MICROSECONDS = 5000;
 
 	/**
-	 * @var string[] The locked storages.
+	 * @var array<string, array{id: int, token: string, namespace: string, release_uncertain?: bool}> The locked storages.
 	 *
-	 * Format: [lock_key => lock_id]
+	 * Format: [lock_key => owner identity and namespace]
 	 */
-	private array $lock_ids = [];
+	private array $lock_ids   = array();
+	private array $unresolved = array();
 
 	/**
 	 * @var float Maximum time a blocking acquire may wait, in seconds.
@@ -39,8 +44,8 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 		float $blocking_timeout = self::DEFAULT_BLOCKING_TIMEOUT,
 		int $db_error_retries = self::DEFAULT_DB_ERROR_RETRIES
 	) {
-		if ( $blocking_timeout < 0 ) {
-			throw new \InvalidArgumentException( 'The blocking timeout cannot be negative.' );
+		if ( ! is_finite( $blocking_timeout ) || $blocking_timeout < 0 ) {
+			throw new \InvalidArgumentException( 'The blocking timeout must be finite and non-negative.' );
 		}
 
 		if ( $db_error_retries < 0 ) {
@@ -49,10 +54,6 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 
 		$this->blocking_timeout = $blocking_timeout;
 		$this->db_error_retries = $db_error_retries;
-
-		if ( function_exists( 'get_option' ) && function_exists( 'update_option' ) ) {
-			self::maybe_upgrade_schema();
-		}
 	}
 
 	/**
@@ -77,6 +78,26 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 	 */
 	private function get_lock_key( string $id ): string {
 		return md5( $id );
+	}
+
+	/** Store only a complete, representable diagnostic ID. The hash always uses the full ID. */
+	private function get_original_key( string $id ): ?string {
+		global $wpdb;
+
+		if ( preg_match( '/\A[\x00-\x7f]*\z/D', $id ) ) {
+			return strlen( $id ) <= 50 ? $id : null;
+		}
+
+		$charset = $wpdb->get_col_charset( $this->get_table_name(), 'original_key' );
+		if ( ! in_array( $charset, array( 'utf8', 'utf8mb3', 'utf8mb4' ), true ) || ! preg_match( '//u', $id ) ) {
+			return null;
+		}
+
+		if ( 'utf8mb4' !== $charset && preg_match( '/[\x{10000}-\x{10FFFF}]/u', $id ) ) {
+			return null;
+		}
+
+		return preg_match_all( '/./us', $id ) <= 50 ? $id : null;
 	}
 
 	/**
@@ -117,219 +138,316 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 			( false !== stripos( $db_error, "doesn't exist" ) || false !== stripos( $db_error, 'does not exist' ) );
 	}
 
+	/** Remove only finite expired owners under their permanent resource row. */
 	public function drop_ghosts( $lock_id = null ): bool {
-		global $wpdb;
-		$ghosts = $this->get_ghosts( $lock_id );
-
-		if ( ! empty( $ghosts ) ) {
-			$deleted = $wpdb->query(
-				"DELETE FROM {$this->get_table_name()} WHERE id IN (" . implode( ',', array_map( 'intval', array_column( $ghosts, 'id' ) ) ) . ')'
-			);
-
-			return false !== $deleted;
+		if ( null === $lock_id ) {
+			return false;
 		}
-
-		return false;
+		$session = WP_Lock_Foundations::open();
+		try {
+			$session->begin_resource( $lock_id );
+			$now     = $session->now();
+			$deleted = false;
+			foreach ( $session->current_owners( $lock_id ) as $owner ) {
+				if ( 0.0 !== (float) $owner['expire'] && (float) $owner['expire'] <= $now ) {
+					if ( 1 !== $session->delete_owner( $lock_id, (int) $owner['id'], $owner['attempt_token'] ) ) {
+						throw new \RuntimeException( 'The expired lock owner could not be deleted.' );
+					}
+					$deleted = true;
+				}
+			}
+			$session->commit();
+			return $deleted;
+		} catch ( \Throwable $error ) {
+			throw new WP_Lock_Ownership_Uncertain( 'Expired-owner cleanup could not be confirmed.', 0, $error );
+		} finally {
+			$session->close();
+		}
 	}
 
-	/**
-	 * Ghost lock is a lock that has no corresponding process and/or connection and has no expiration time.
-	 * Search for a ghost lock for specific lock_id in the database and remove it.
-	 *
-	 * @return array List of ghost locks.
-	 */
+	/** Return finite expired owners for diagnostics; TTL=0 requires manual recovery. */
 	public function get_ghosts( $lock_id = null ): array {
 		global $wpdb;
-
-		// Get all expired locks if no lock_id is provided.
-		$ids = null !== $lock_id ? $wpdb->prepare( ' AND `lock_key` = %s', $this->get_lock_key( $lock_id ) ) : '';
-
-		$expired = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT * FROM {$this->get_table_name()} WHERE 1=1 {$ids} AND `expire` <= %f",
-				microtime( true )
-			),
+		$filter = null === $lock_id ? '' : $wpdb->prepare( ' AND lock_key = %s', $this->get_lock_key( $lock_id ) );
+		$rows   = $wpdb->get_results(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is the WordPress prefix plus a fixed suffix; the optional filter is prepared above.
+			"SELECT * FROM {$this->get_table_name()} WHERE expire > 0 AND expire <= UNIX_TIMESTAMP(NOW(6)){$filter}",
 			ARRAY_A
 		);
-
-		if ( empty( $expired ) ) {
-			return [];
+		if ( ! empty( $wpdb->last_error ) ) {
+			throw new \RuntimeException( 'Unable to inspect expired lock owners.' );
 		}
-
-		// Following code supposes that there might be active locks with expiration field set 0.
-		// Filter out locks that have a corresponding process. They are not ghosts.
-		$expired = array_filter( $expired, function ( $lock ) {
-			return ! ( 0.0 === (float) $lock['expire'] && ! empty( $lock['pid'] ) && file_exists( "/proc/{$lock['pid']}" ) );
-		} );
-
-		if ( empty( $expired ) ) {
-			return [];
-		}
-
-		$cids = array_filter( array_map( 'intval', array_column( $expired, 'cid' ) ) );
-		if ( empty( $cids ) ) {
-			// Here we have only locks with no process ID and no connection ID. They are certainly ghosts.
-			return $expired;
-		}
-
-		// Get active CIDs from the database to check whether the given connections are still alive or not.
-		$active_cids = array_map(
-			'intval',
-			(array) $wpdb->get_col(
-				'SELECT id FROM information_schema.processlist WHERE id IN (' . implode( ',', $cids ) . ')'
-			)
-		);
-
-		$ghosts = array_filter( $expired, function ( $lock ) use ( $active_cids ) {
-			// Throw out locks that have a corresponding connection. They are not ghosts.
-			return ! (
-				0.0 === (float) $lock['expire'] &&
-				! empty( $lock['cid'] ) &&
-				in_array( (int) $lock['cid'], $active_cids, true )
-			);
-		} );
-
-		return $ghosts;
+		return (array) $rows;
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	public function acquire( $id, $level, $blocking, $expiration = 0 ): bool {
-		global $wpdb;
-
 		$this->validate_lock_level( $level );
 		$this->validate_expiration( $expiration );
-
-		$lock_key = $this->get_lock_key( $id );
-		if ( isset( $this->lock_ids[ $lock_key ] ) ) {
+		$key = $this->get_lock_key( $id );
+		if ( isset( $this->lock_ids[ $key ] ) ) {
 			throw new \LogicException( 'This backend instance already owns the requested resource.' );
 		}
+		if ( isset( $this->unresolved[ $key ] ) ) {
+			$this->reconcile( $id, $key );
+		}
 
-		$deadline                 = $blocking ? microtime( true ) + $this->blocking_timeout : 0.0;
-		$schema_install_attempted = false;
-		$ghost_retry_available    = true;
-		$db_error_attempt         = 0;
-
+		$started    = hrtime( true );
+		$deadline   = $started + (int) min( PHP_INT_MAX - $started, $this->blocking_timeout * 1000000000 );
+		$timed_wait = $blocking && $this->blocking_timeout > 0;
+		$wait_guard = $timed_wait ? function () use ( $deadline ) {
+			if ( hrtime( true ) >= $deadline ) {
+				throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
+			}
+		} : null;
+		$errors     = 0;
+		$last_error = null;
+		$attempted  = false;
+		$namespace  = '';
 		while ( true ) {
-			$lock_level = WP_Lock::READ === $level ? ' AND `level` > %d' : '';
-			$query      = "INSERT INTO {$this->get_table_name()} (`lock_key`, `original_key`, `level`, `pid`, `cid`, `expire`) " .
-				"SELECT %s, %s, %d, %d, CONNECTION_ID(), %f FROM dual " .
-				"WHERE NOT EXISTS (SELECT 1 FROM {$this->get_table_name()} WHERE `lock_key` = %s{$lock_level} " .
-				'AND (`expire` = 0 OR `expire` >= %f))';
-			$query_args = [
-				$lock_key,
-				$id,
-				$level,
-				getmypid(),
-				$expiration ? $expiration + microtime( true ) : 0,
-				$lock_key,
-			];
-
-			if ( WP_Lock::READ === $level ) {
-				$query_args[] = $level;
+			if ( $attempted && ( ! $blocking || hrtime( true ) >= $deadline ) ) {
+				if ( null !== $last_error ) {
+					throw new \RuntimeException( 'Unable to acquire lock because of a database error.', 0, $last_error );
+				}
+				return false;
 			}
-			$query_args[] = microtime( true );
-
-			$prepared_query  = call_user_func_array( [ $wpdb, 'prepare' ], array_merge( [ $query ], $query_args ) );
-			$suppress_errors = $wpdb->suppress_errors( true );
+			$attempted      = true;
+			$session        = null;
+			$token          = null;
+			$commit_started = false;
 			try {
-				$acquired = $wpdb->query( $prepared_query );
-				$db_error = $wpdb->last_error;
-			} finally {
-				$wpdb->suppress_errors( $suppress_errors );
-			}
-
-			if ( false === $acquired || ! empty( $db_error ) ) {
-				if ( ! $schema_install_attempted && $this->is_missing_table_error( $db_error ) ) {
-					$schema_install_attempted = true;
-					$suppress_errors          = $wpdb->suppress_errors( true );
-					try {
-						self::maybe_upgrade_schema( true );
-					} finally {
-						$wpdb->suppress_errors( $suppress_errors );
+				$session = WP_Lock_Foundations::open( null, $wait_guard );
+				$session->assert_protocol_enabled();
+				$namespace = WP_Lock_Foundations::namespace();
+				if ( $timed_wait && hrtime( true ) >= $deadline ) {
+					throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
+				}
+				$session->begin_resource( $id );
+				if ( $timed_wait && hrtime( true ) >= $deadline ) {
+					throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
+				}
+				$now = $session->now();
+				if ( $timed_wait && hrtime( true ) >= $deadline ) {
+					throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
+				}
+				$conflict = false;
+				foreach ( $session->current_owners( $id ) as $owner ) {
+					if ( $timed_wait && hrtime( true ) >= $deadline ) {
+						throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
+					}
+					if ( 0.0 !== (float) $owner['expire'] && (float) $owner['expire'] <= $now ) {
+						if ( 1 !== $session->delete_owner( $id, (int) $owner['id'], $owner['attempt_token'] ) ) {
+							throw new \RuntimeException( 'The expired lock owner could not be deleted.' );
+						}
+						if ( $timed_wait && hrtime( true ) >= $deadline ) {
+							throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
+						}
+					} elseif ( WP_Lock::WRITE === $level || WP_Lock::WRITE === (int) $owner['level'] ) {
+						$conflict = true;
 					}
 				}
-
-				if ( $db_error_attempt >= $this->db_error_retries ) {
-					throw new \RuntimeException(
-						'Unable to acquire lock because of a database error: ' . ( $db_error ?: 'unknown database error' )
-					);
-				}
-
-				$db_error_attempt++;
-				usleep( min( self::POLL_INTERVAL_MICROSECONDS * $db_error_attempt, 100000 ) );
-				continue;
-			}
-
-			$db_error_attempt = 0;
-			if ( $acquired ) {
-				$this->lock_ids[ $lock_key ] = $wpdb->insert_id;
-
-				return true;
-			}
-
-			$dropped = $this->drop_ghosts( $id );
-			if ( ! $blocking ) {
-				if ( $dropped && $ghost_retry_available ) {
-					$ghost_retry_available = false;
+				if ( $conflict ) {
+					$session->rollback();
+					$last_error = null;
+					if ( ! $blocking || hrtime( true ) >= $deadline ) {
+						return false;
+					}
+					usleep( min( self::POLL_INTERVAL_MICROSECONDS, (int) max( 0, ( $deadline - hrtime( true ) ) / 1000 ) ) );
 					continue;
 				}
-
+				if ( $timed_wait && hrtime( true ) >= $deadline ) {
+					throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
+				}
+				$token  = WP_Lock_Foundations::new_token();
+				$expire = $expiration ? $session->now() + $expiration : 0.0;
+				if ( $timed_wait && hrtime( true ) >= $deadline ) {
+					throw new WP_Lock_Wait_Expired( 'Lock wait budget expired.' );
+				}
+				$original_key = $this->get_original_key( $id );
+				if ( null !== $wait_guard ) {
+					$wait_guard();
+				}
+				$owner_id       = $session->insert_owner( $id, $level, $token, $expire, $original_key );
+				$commit_started = true;
+				$session->commit();
+				// A committed owner is retained until its exact cleanup is confirmed.
+				$this->unresolved[ $key ] = array(
+					'namespace' => $namespace,
+					'token'     => $token,
+				);
+				if ( ( $expiration && $session->now() >= $expire ) || ( $timed_wait && hrtime( true ) >= $deadline ) ) {
+					$this->reconcile( $id, $key );
+					return false;
+				}
+				unset( $this->unresolved[ $key ] );
+				$this->lock_ids[ $key ] = array(
+					'id'        => $owner_id,
+					'token'     => $token,
+					'namespace' => $namespace,
+				);
+				return true;
+			} catch ( WP_Lock_Wait_Expired $error ) {
+				if ( null !== $session ) {
+					try {
+						$session->rollback();
+					} catch ( \LogicException $rollback_error ) {
+						// The budget expired before START TRANSACTION.
+					} catch ( \Throwable $rollback_error ) {
+						throw new WP_Lock_Ownership_Uncertain( 'Lock rollback could not be confirmed.', 0, $rollback_error );
+					}
+				}
+				if ( null !== $last_error ) {
+					throw new \RuntimeException( 'Unable to acquire lock because of a database error.', 0, $last_error );
+				}
 				return false;
-			}
-
-			if ( microtime( true ) >= $deadline ) {
-				return false;
-			}
-
-			if ( ! $dropped ) {
-				$remaining_microseconds = (int) max( 0, ( $deadline - microtime( true ) ) * 1000000 );
-				usleep( min( self::POLL_INTERVAL_MICROSECONDS, $remaining_microseconds ) );
+			} catch ( WP_Lock_Ownership_Uncertain $error ) {
+				if ( null !== $token ) {
+					$this->unresolved[ $key ] = array(
+						'namespace' => $namespace,
+						'token'     => $token,
+					);
+				}
+				throw $error;
+			} catch ( \Throwable $error ) {
+				if ( null !== $token && $commit_started ) {
+					$this->unresolved[ $key ] = array(
+						'namespace' => $namespace,
+						'token'     => $token,
+					);
+					throw new WP_Lock_Ownership_Uncertain( 'Lock commit or confirmation is uncertain.', 0, $error );
+				}
+				if ( null !== $session ) {
+					try {
+						$session->rollback();
+					} catch ( \LogicException $rollback_error ) {
+						// START TRANSACTION failed before a transaction existed.
+					} catch ( \Throwable $rollback_error ) {
+						if ( null !== $token ) {
+							$this->unresolved[ $key ] = array(
+								'namespace' => $namespace,
+								'token'     => $token,
+							);
+						}
+						throw new WP_Lock_Ownership_Uncertain( 'Lock rollback could not be confirmed.', 0, $rollback_error );
+					}
+				}
+				if ( $error instanceof \InvalidArgumentException || $error instanceof \LogicException ) {
+					throw $error;
+				}
+				$last_error = $error;
+				if ( $errors++ >= $this->db_error_retries || ! $blocking || hrtime( true ) >= $deadline ) {
+					throw new \RuntimeException( 'Unable to acquire lock because of a database error.', 0, $error );
+				}
+				usleep( min( self::POLL_INTERVAL_MICROSECONDS * $errors, 100000, (int) max( 0, ( $deadline - hrtime( true ) ) / 1000 ) ) );
+				if ( hrtime( true ) >= $deadline ) {
+					throw new \RuntimeException( 'Unable to acquire lock because of a database error.', 0, $error );
+				}
+			} finally {
+				if ( null !== $session ) {
+					$session->close();
+				}
 			}
 		}
 	}
 
-	/**
-	 * @inheritDoc
-	 */
+	/** Remove an unresolved attempt before the wrapper can try a new owner. */
+	private function reconcile( string $id, string $key ): void {
+		$attempt = $this->unresolved[ $key ];
+		$session = null;
+		try {
+			$session = WP_Lock_Foundations::open( $attempt['namespace'] );
+			$session->begin_resource( $id );
+			$owners = $session->find_attempt( $id, $attempt['token'] );
+			if ( $owners ) {
+				if ( 1 !== $session->delete_owner( $id, (int) $owners[0]['id'], $attempt['token'] ) ) {
+					throw new \RuntimeException( 'The unresolved lock owner could not be deleted.' );
+				}
+			}
+			$session->commit();
+			unset( $this->unresolved[ $key ] );
+		} catch ( \Throwable $error ) {
+			throw new WP_Lock_Ownership_Uncertain( 'Unresolved lock attempt could not be reconciled.', 0, $error );
+		} finally {
+			if ( null !== $session ) {
+				$session->close();
+			}
+		}
+	}
+
+	/** @inheritDoc */
 	public function release( $id ): bool {
-		global $wpdb;
-
-		$lock_key = $this->get_lock_key( $id );
-		if ( ! isset( $this->lock_ids[ $lock_key ] ) ) {
-			// This lock is not acquired.
+		$key = $this->get_lock_key( $id );
+		if ( isset( $this->unresolved[ $key ] ) ) {
+			$this->reconcile( $id, $key );
+			return true;
+		}
+		if ( ! isset( $this->lock_ids[ $key ] ) ) {
 			return false;
 		}
-
-		$lock_id = $this->lock_ids[ $lock_key ];
-		$deleted = $wpdb->query( $wpdb->prepare( "DELETE FROM {$this->get_table_name()} WHERE id = %d", $lock_id ) );
-		if ( false === $deleted ) {
-			return false;
+		$owner   = $this->lock_ids[ $key ];
+		$retries = 0;
+		while ( true ) {
+			$session        = WP_Lock_Foundations::open( $owner['namespace'] );
+			$commit_started = false;
+			try {
+				$session->begin_resource( $id );
+				$found   = $session->find_attempt( $id, $owner['token'] );
+				$missing = ! $found || (int) $found[0]['id'] !== $owner['id'];
+				$expired = ! $missing && 0.0 !== (float) $found[0]['expire'] && (float) $found[0]['expire'] <= $session->now();
+				if ( $missing || $expired ) {
+					$session->rollback();
+					if ( $missing && ! empty( $owner['release_uncertain'] ) ) {
+						unset( $this->lock_ids[ $key ] );
+						return true;
+					}
+					unset( $this->lock_ids[ $key ] );
+					throw new WP_Lock_Ownership_Lost( 'The recorded lock owner no longer exists.' );
+				}
+				$deleted = $session->delete_owner( $id, $owner['id'], $owner['token'] );
+				if ( 1 !== $deleted ) {
+					throw new \RuntimeException( 'The recorded lock owner could not be deleted.' );
+				}
+				$this->lock_ids[ $key ]['release_uncertain'] = true;
+				$commit_started                              = true;
+				$session->commit();
+				unset( $this->lock_ids[ $key ] );
+				return true;
+			} catch ( WP_Lock_Ownership_Lost $error ) {
+				throw $error;
+			} catch ( \Throwable $error ) {
+				if ( ! $commit_started && $error instanceof WP_Lock_Foundation_SQL_Error &&
+					in_array( $error->getCode(), array( 1205, 1213 ), true ) ) {
+					try {
+						$session->rollback();
+					} catch ( \Throwable $rollback_error ) {
+						throw new WP_Lock_Ownership_Uncertain( 'Lock release rollback could not be confirmed.', 0, $rollback_error );
+					}
+					if ( $retries++ < $this->db_error_retries ) {
+						continue;
+					}
+					throw new \RuntimeException( 'Lock release failed after database retries.', 0, $error );
+				}
+				throw new WP_Lock_Ownership_Uncertain( 'Lock release could not be confirmed.', 0, $error );
+			} finally {
+				$session->close();
+			}
 		}
+	}
 
-		unset( $this->lock_ids[ $lock_key ] );
-
-		return true;
+	public function has_unresolved( $id ): bool {
+		return isset( $this->unresolved[ $this->get_lock_key( $id ) ] );
 	}
 
 	public function exists( $id, $level = WP_Lock::WRITE ): bool {
-		global $wpdb;
 		$this->validate_lock_level( $level );
-
-		$lock_key = $this->get_lock_key( $id );
-		$lock = $wpdb->get_row(
-			$wpdb->prepare(
-				"SELECT 1 FROM {$this->get_table_name()} WHERE `lock_key` = %s AND `level` >= %d " .
-				'AND (`expire` = 0 OR `expire` >= %f)',
-				$lock_key,
-				$level,
-				microtime( true )
-			),
-			ARRAY_A
-		);
-
-		return ! empty( $lock );
+		$session = WP_Lock_Foundations::open();
+		try {
+			return $session->exists( $id, $level );
+		} finally {
+			$session->close();
+		}
 	}
 
 	/**
@@ -342,7 +460,7 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 
 		Database::install_table(
 			self::TABLE_NAME,
-			"id int(10) unsigned NOT NULL AUTO_INCREMENT,
+			'id int(10) unsigned NOT NULL AUTO_INCREMENT,
 			lock_key varchar(50) DEFAULT NULL,
 			original_key varchar(50) DEFAULT NULL,
 			level smallint(5) unsigned DEFAULT NULL,
@@ -351,12 +469,13 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 			expire decimal(16,6) unsigned DEFAULT NULL,
 			PRIMARY KEY  (id),
 			KEY lock_key (lock_key),
-			KEY level (level)",
-			[ 'upgrade_method' => 'dbDelta' ]
+			KEY level (level)',
+			array( 'upgrade_method' => 'dbDelta' )
 		);
 
 		$table_name = $wpdb->prefix . self::TABLE_NAME;
 		if ( self::has_index( 'id' ) ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- DDL identifier is the WordPress prefix plus a fixed suffix.
 			$wpdb->query( "ALTER TABLE `{$table_name}` DROP INDEX `id`" );
 		}
 	}
@@ -375,12 +494,8 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 		}
 
 		self::install();
-		if ( ! self::has_index( 'lock_key' ) ) {
-			return false;
-		}
-
 		if ( $can_track_version ) {
-			update_option( self::SCHEMA_VERSION_OPTION, self::SCHEMA_VERSION, false );
+			WP_Lock_Foundations::record_legacy_schema_version();
 		}
 
 		return true;
@@ -399,8 +514,8 @@ class WP_Lock_Backend_DB implements WP_Lock_Backend {
 		$table_name = $wpdb->prefix . self::TABLE_NAME;
 		return (bool) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM information_schema.statistics
-				WHERE table_schema = DATABASE() AND table_name = %s AND index_name = %s",
+				'SELECT COUNT(*) FROM information_schema.statistics
+				WHERE table_schema = DATABASE() AND table_name = %s AND index_name = %s',
 				$table_name,
 				$index_name
 			)

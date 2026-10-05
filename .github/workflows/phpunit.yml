@@ -4,6 +4,13 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      candidate:
+        description: Run the two newest database candidate rows on this ref
+        type: boolean
+        default: false
+  schedule:
+    - cron: '0 3 * * 1'
 
 permissions:
   contents: read
@@ -13,6 +20,87 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  static-analysis:
+    name: Static analysis (PHP 7.4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up PHP
+        uses: shivammathur/setup-php@bf6b4fbd49ca58e4608c9c89fba0b8d90bd2a39f # 2.35.5
+        with:
+          php-version: '7.4'
+          extensions: dom, mbstring, simplexml, xml, xmlwriter
+          coverage: none
+      - name: Install PHP dependencies
+        uses: ramsey/composer-install@b38926e6aa883a48335a05214b1d7afe9d9913ca # 3.1.1
+      - name: Check WordPress coding standards
+        run: composer lint
+      - name: Run PHPStan
+        run: composer analyse
+
+  native-lts:
+    name: Native LTS ${{ matrix.row }} (RR + RC)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        row: [mysql97, maria123, mysql97-floor, maria123-floor]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Prepare Composer
+        uses: shivammathur/setup-php@bf6b4fbd49ca58e4608c9c89fba0b8d90bd2a39f # 2.35.5
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+      - name: Install Subversion
+        run: sudo apt-get update && sudo apt-get install --yes subversion
+      - name: Run native Composer suite on both isolations
+        env:
+          E5_NATIVE_OUT: ${{ runner.temp }}/e5-native-${{ matrix.row }}
+        run: bash tests/diagnostics/e5-native-matrix.sh '${{ matrix.row }}'
+      - name: Retain native evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e5-native-lts-${{ matrix.row }}
+          path: ${{ runner.temp }}/e5-native-${{ matrix.row }}/evidence
+          if-no-files-found: error
+
+  native-candidate:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.candidate == true)
+    name: Native candidate ${{ matrix.row }} (RR + RC)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        row: [mysql267, maria130]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Prepare Composer
+        uses: shivammathur/setup-php@bf6b4fbd49ca58e4608c9c89fba0b8d90bd2a39f # 2.35.5
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+      - name: Install Subversion
+        run: sudo apt-get update && sudo apt-get install --yes subversion
+      - name: Run native Composer suite on both isolations
+        env:
+          E5_NATIVE_OUT: ${{ runner.temp }}/e5-native-${{ matrix.row }}
+        run: bash tests/diagnostics/e5-native-matrix.sh '${{ matrix.row }}'
+      - name: Retain candidate evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e5-native-candidate-${{ matrix.row }}
+          path: ${{ runner.temp }}/e5-native-${{ matrix.row }}/evidence
+          if-no-files-found: error
+
   phpunit:
     name: PHP ${{ matrix.php-version }}
     runs-on: ubuntu-latest
@@ -60,7 +148,7 @@ jobs:
       - name: Set up WordPress test library
         uses: sjinks/setup-wordpress-test-library@9726426f2a40656274560a0394718177f8adb424 # v3.0.0
         with:
-          version: '7.1'
+          version: '7.1.2'
 
       - name: Run PHPUnit
         run: composer test
@@ -107,7 +195,7 @@ jobs:
       - name: Set up WordPress test library
         uses: sjinks/setup-wordpress-test-library@9726426f2a40656274560a0394718177f8adb424 # v3.0.0
         with:
-          version: '7.1'
+          version: '7.1.2'
 
       - name: Generate Clover coverage
         run: |

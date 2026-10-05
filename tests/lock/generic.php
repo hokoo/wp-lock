@@ -3,6 +3,8 @@
 use iTRON\WP_Lock\helpers\Database;
 use iTRON\WP_Lock\WP_Lock;
 use iTRON\WP_Lock\WP_Lock_Backend_DB;
+use iTRON\WP_Lock\WP_Lock_Foundations;
+use iTRON\WP_Lock\WP_Lock_Ownership_Lost;
 
 class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 	protected function setUp(): void {
@@ -12,6 +14,8 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 		Database::register_table( WP_Lock_Backend_DB::TABLE_NAME );
 		WP_Lock_Backend_DB::maybe_upgrade_schema( true );
 		$this->delete_all_locks();
+		WP_Lock_Foundations::prepare_schema();
+		WP_Lock_Foundations::switch_protocol( WP_Lock_Foundations::PROTOCOL_VERSION );
 	}
 
 	protected function tearDown(): void {
@@ -59,7 +63,7 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 			! function_exists( 'pcntl_waitpid' ) ||
 			! function_exists( 'posix_kill' )
 		) {
-			$this->markTestSkipped( 'PCNTL and POSIX process control are required.' );
+			throw new RuntimeException( 'PCNTL and POSIX process control are required.' );
 		}
 	}
 
@@ -171,7 +175,12 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 		$this->assertFalse( $writer->exists( $resource_id, WP_Lock::WRITE ) );
 		$reader = new WP_Lock_Backend_DB();
 		$this->assertTrue( $reader->acquire( $resource_id, WP_Lock::READ, false, 0 ) );
-		$this->assertTrue( $writer->release( $resource_id ) );
+		try {
+			$writer->release( $resource_id );
+			$this->fail( 'Expired predecessor release must report ownership loss.' );
+		} catch ( WP_Lock_Ownership_Lost $expected ) {
+			$this->assertTrue( $reader->exists( $resource_id, WP_Lock::READ ) );
+		}
 		$this->assertTrue( $reader->release( $resource_id ) );
 	}
 
@@ -233,17 +242,36 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 	}
 
 	public function _test_concurrent_pageview_updates_child( $post_id, $resource_id, $increments ): bool {
-		foreach ( range( 1, $increments ) as $_ ) {
+		foreach ( range( 1, $increments ) as $iteration ) {
 			$backend = new WP_Lock_Backend_DB( 5.0 );
-			if ( ! $backend->acquire( $resource_id, WP_Lock::WRITE, true, 0 ) ) {
-				return false;
-			}
-
+			$started = microtime( true );
+			$acquire_duration = null;
+			$phase = 'acquire';
 			try {
-				$pageviews = get_post_meta( $post_id, 'pageviews', true );
-				update_post_meta( $post_id, 'pageviews', (int) $pageviews + 1 );
-			} finally {
-				$backend->release( $resource_id );
+				$acquired = $backend->acquire( $resource_id, WP_Lock::WRITE, true, 0 );
+				$acquire_duration = microtime( true ) - $started;
+				if ( ! $acquired ) {
+					fwrite(
+						STDERR,
+						sprintf( 'Pageview acquire %d/%d returned false after %.3fs.%s', $iteration, $increments, $acquire_duration, PHP_EOL )
+					);
+					return false;
+				}
+
+				try {
+					$phase = 'update';
+					$pageviews = get_post_meta( $post_id, 'pageviews', true );
+					update_post_meta( $post_id, 'pageviews', (int) $pageviews + 1 );
+				} finally {
+					$phase = 'release';
+					$backend->release( $resource_id );
+				}
+			} catch ( Throwable $error ) {
+				fwrite(
+					STDERR,
+					sprintf( 'Pageview %s %d/%d failed; acquire took %.3fs.%s', $phase, $iteration, $increments, null === $acquire_duration ? microtime( true ) - $started : $acquire_duration, PHP_EOL )
+				);
+				throw $error;
 			}
 		}
 
@@ -276,6 +304,9 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 		try {
 			$children[] = run_in_child( array( $callback, 'run' ) );
 			$this->assert_children_succeeded( wp_lock_wait_for_children( $children, 5.0 ) );
+			if ( 1 === $expiration ) {
+				sleep( 2 );
+			}
 
 			$backend = new WP_Lock_Backend_DB();
 			$this->assertSame( $expect_ghost, ! empty( $backend->get_ghosts( $resource_id ) ) );
@@ -296,9 +327,10 @@ class WP_Lock_Backend_Generic_UnitTestCase extends WP_UnitTestCase {
 
 	public function ghost_lock_scenarios(): array {
 		return array(
-			'no-expiration lock becomes a ghost' => array( 0, true, true, null ),
+			'no-expiration owner requires manual recovery' => array( 0, false, false, null ),
+			'expired finite owner is a ghost' => array( 1, true, true, null ),
 			'unexpired lock is not a ghost'       => array( 30, false, false, null ),
-			'zero resource identifier is scoped'  => array( 0, true, true, '0' ),
+			'zero resource identifier is scoped'  => array( 0, false, false, '0' ),
 		);
 	}
 }

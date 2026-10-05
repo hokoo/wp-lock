@@ -40,7 +40,20 @@ function run_in_child( $callback ) {
 		try {
 			$exit_code = call_user_func( $callback ) ? 0 : 1;
 		} catch ( Throwable $error ) {
-			fwrite( STDERR, $error->getMessage() . PHP_EOL );
+			for ( $cause = $error; null !== $cause; $cause = $cause->getPrevious() ) {
+				$class   = get_class( $cause );
+				$message = $cause->getMessage();
+				if (
+					0 !== strpos( $class, 'iTRON\\WP_Lock\\' ) &&
+					'Unable to acquire lock because of a database error.' !== $message
+				) {
+					$message = '[redacted outside lock library]';
+				}
+				fwrite(
+					STDERR,
+					sprintf( '%s (code %s): %s%s', $class, $cause->getCode(), $message, PHP_EOL )
+				);
+			}
 			$exit_code = 1;
 		}
 
