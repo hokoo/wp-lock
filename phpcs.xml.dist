@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<ruleset name="WP Lock">
+    <file>lib</file>
+    <file>plugin.php</file>
+    <rule ref="WordPress-Core"/>
+
+    <!-- These files are named by the existing Composer autoload and public class layout. -->
+    <rule ref="WordPress.Files.FileName">
+        <exclude-pattern>*/lib/backend/class-wp-lock-backend-db.php</exclude-pattern>
+        <exclude-pattern>*/lib/backend/class-wp-lock-foundations.php</exclude-pattern>
+        <exclude-pattern>*/lib/helpers/Database.php</exclude-pattern>
+    </rule>
+    <rule ref="Generic.Files.OneObjectStructurePerFile">
+        <exclude-pattern>*/lib/backend/class-wp-lock-backend-db.php</exclude-pattern>
+        <exclude-pattern>*/lib/backend/class-wp-lock-foundations.php</exclude-pattern>
+    </rule>
+    <!-- Renaming these parameters would change PHP 8 named-argument calls. -->
+    <rule ref="Universal.NamingConventions.NoReservedKeywordParameterNames">
+        <exclude-pattern>*/lib/backend/class-wp-lock-foundations.php</exclude-pattern>
+    </rule>
+</ruleset>

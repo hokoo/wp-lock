@@ -20,6 +20,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  static-analysis:
+    name: Static analysis (PHP 7.4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up PHP
+        uses: shivammathur/setup-php@bf6b4fbd49ca58e4608c9c89fba0b8d90bd2a39f # 2.35.5
+        with:
+          php-version: '7.4'
+          extensions: dom, mbstring, simplexml, xml, xmlwriter
+          coverage: none
+      - name: Install PHP dependencies
+        uses: ramsey/composer-install@b38926e6aa883a48335a05214b1d7afe9d9913ca # 3.1.1
+      - name: Check WordPress coding standards
+        run: composer lint
+      - name: Run PHPStan
+        run: composer analyse
+
   native-lts:
     name: Native LTS ${{ matrix.row }} (RR + RC)
     runs-on: ubuntu-latest
