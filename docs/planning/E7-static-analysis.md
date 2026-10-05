@@ -14,7 +14,7 @@
 
 ## E7-01. Establish the analyzer baseline and checks
 
-- **Status:** review. **Owner:** TEST. **Priority:** P1. **Batch:** B6.
+- **Status:** completed. **Owner:** TEST. **Priority:** P1. **Batch:** B6.
 - **Goal:** make style and static defects in the library visible without hiding new findings.
 - **Scope:** probe PHP_CodeSniffer/WPCS and PHPStan against `lib/` and `plugin.php`; choose the lowest useful PHPStan level from measured output; add minimal project rules and Composer `lint`/`analyse` commands; fix actionable findings in scope. Add WordPress definitions only where analysis requires them.
 - **Out of Scope:** changing lock contracts, broad test formatting, speculative analyzer plugins, and blanket exclusions.
@@ -26,7 +26,7 @@
 
 ## E7-02. Enforce CI and refresh the 3.0.0 candidate
 
-- **Status:** review. **Owner:** TEST + DO. **Priority:** P1. **Batch:** B6.
+- **Status:** completed. **Owner:** TEST + DO. **Priority:** P1. **Batch:** B6.
 - **Goal:** enforce the new checks and identify the exact candidate to which all release evidence applies.
 - **Scope:** one fast CI job for `composer lint` and `composer analyse` on push and pull request; concise README guidance; final SHA/package manifest and affected-gate evidence after the E7-01 changes are reviewed.
 - **Out of Scope:** replacing the existing PHPUnit, coverage, native database, or PHP-version jobs; publishing or deploying the package.
@@ -38,7 +38,7 @@
 
 ## E7-QA. Independently accept the revised candidate
 
-- **Status:** waiting_dependency. **Owner:** QA. **Priority:** P0. **Batch:** B6.
+- **Status:** completed. **Owner:** QA. **Priority:** P0. **Batch:** B6.
 - **Goal:** verify that the new gate works and the revised 3.0.0 candidate retains required release evidence.
 - **Scope:** E7 task criteria, scoped findings/exceptions, required CI results, source-change impact, package manifest, and exact merged revision.
 - **Out of Scope:** publication, a new compatibility matrix, or repeating unaffected E5 rehearsals without a concrete risk.
