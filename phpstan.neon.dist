@@ -1,0 +1,10 @@
+parameters:
+    level: 3
+    phpVersion: 70400
+    dynamicConstantNames:
+        - ABSPATH
+    paths:
+        - lib
+        - plugin.php
+    scanFiles:
+        - phpstan-wordpress.php

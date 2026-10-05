@@ -9,25 +9,25 @@ final class WP_Lock_Foundation_SQL_Error extends \RuntimeException {}
  * Controlled 3.0 resource and owner transactions on an independent connection.
  */
 final class WP_Lock_Foundations {
-	const RESOURCE_TABLE = 'lock_resource';
-	const SCHEMA_OPTION = 'wp_lock_db_foundation_schema_version';
-	const SCHEMA_VERSION = '3.0.0-foundations';
-	const PROTOCOL_OPTION = 'wp_lock_db_protocol_version';
+	const RESOURCE_TABLE   = 'lock_resource';
+	const SCHEMA_OPTION    = 'wp_lock_db_foundation_schema_version';
+	const SCHEMA_VERSION   = '3.0.0-foundations';
+	const PROTOCOL_OPTION  = 'wp_lock_db_protocol_version';
 	const PROTOCOL_VERSION = '3.0.0';
 
 	private $db;
 	private string $namespace;
 	private int $connection_id;
 	private array $route;
-	private bool $in_transaction = false;
+	private bool $in_transaction  = false;
 	private bool $resource_locked = false;
-	private ?string $locked_key = null;
+	private ?string $locked_key   = null;
 
 	private function __construct( $db, string $namespace, array $route ) {
-		$this->db = $db;
-		$this->namespace = $namespace;
+		$this->db            = $db;
+		$this->namespace     = $namespace;
 		$this->connection_id = (int) $route['connection_id'];
-		$this->route = $route;
+		$this->route         = $route;
 	}
 
 	/** Prepare additive schema explicitly; live-site protocol switching is separate. */
@@ -35,13 +35,15 @@ final class WP_Lock_Foundations {
 		global $wpdb;
 
 		$namespace = self::namespace();
-		$session = self::connect( $namespace );
-		$db = $session->db;
-		$owner = self::quote( $namespace . WP_Lock_Backend_DB::TABLE_NAME );
-		$resource = self::quote( $namespace . self::RESOURCE_TABLE );
-		$charset = $wpdb->get_charset_collate();
+		$session   = self::connect( $namespace );
+		$db        = $session->db;
+		$owner     = self::quote( $namespace . WP_Lock_Backend_DB::TABLE_NAME );
+		$resource  = self::quote( $namespace . self::RESOURCE_TABLE );
+		$charset   = $wpdb->get_charset_collate();
 		try {
-		self::ddl( $session, "CREATE TABLE IF NOT EXISTS {$owner} (
+			self::ddl(
+				$session,
+				"CREATE TABLE IF NOT EXISTS {$owner} (
 			id int(10) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
 			lock_key varchar(50) DEFAULT NULL,
 			original_key varchar(50) DEFAULT NULL,
@@ -50,31 +52,39 @@ final class WP_Lock_Foundations {
 			cid int(10) unsigned DEFAULT NULL,
 			expire decimal(16,6) unsigned DEFAULT NULL,
 			KEY lock_key (lock_key), KEY level (level)
-		) ENGINE=InnoDB {$charset}" );
-		self::ddl( $session, "CREATE TABLE IF NOT EXISTS {$resource} (
+		) ENGINE=InnoDB {$charset}"
+			);
+			self::ddl(
+				$session,
+				"CREATE TABLE IF NOT EXISTS {$resource} (
 			lock_key char(32) NOT NULL PRIMARY KEY
-		) ENGINE=InnoDB {$charset}" );
-		if ( ! self::column( $db, $namespace . WP_Lock_Backend_DB::TABLE_NAME, 'attempt_token' ) ) {
-			self::ddl( $session, "ALTER TABLE {$owner} ADD COLUMN attempt_token char(32) DEFAULT NULL" );
-		}
-		if ( ! self::index( $db, $namespace . WP_Lock_Backend_DB::TABLE_NAME, 'attempt_token' ) ) {
-			self::ddl( $session, "ALTER TABLE {$owner} ADD UNIQUE KEY attempt_token (attempt_token)" );
-		}
+		) ENGINE=InnoDB {$charset}"
+			);
+			if ( ! self::column( $db, $namespace . WP_Lock_Backend_DB::TABLE_NAME, 'attempt_token' ) ) {
+				self::ddl( $session, "ALTER TABLE {$owner} ADD COLUMN attempt_token char(32) DEFAULT NULL" );
+			}
+			if ( ! self::index( $db, $namespace . WP_Lock_Backend_DB::TABLE_NAME, 'attempt_token' ) ) {
+				self::ddl( $session, "ALTER TABLE {$owner} ADD UNIQUE KEY attempt_token (attempt_token)" );
+			}
 
-		$session->assert_connection();
-		self::verify_schema( $db, $namespace );
-		$session->assert_connection();
-		$options = self::quote( $namespace . 'options' );
-		self::ddl( $session, $db->prepare(
-			"INSERT INTO {$options} (option_name, option_value, autoload) VALUES (%s, %s, 'no') ON DUPLICATE KEY UPDATE option_value = VALUES(option_value)",
-			self::SCHEMA_OPTION, self::SCHEMA_VERSION
-		) );
-		$version = $db->get_var( $db->prepare( "SELECT option_value FROM {$options} WHERE option_name = %s", self::SCHEMA_OPTION ) );
-		if ( ! empty( $db->last_error ) || self::SCHEMA_VERSION !== $version ) {
-			throw new \RuntimeException( 'Lock foundation schema marker could not be verified.' );
-		}
-		$session->assert_connection();
-		self::clear_option_cache( self::SCHEMA_OPTION );
+			$session->assert_connection();
+			self::verify_schema( $db, $namespace );
+			$session->assert_connection();
+			$options = self::quote( $namespace . 'options' );
+			self::ddl(
+				$session,
+				$db->prepare(
+					"INSERT INTO {$options} (option_name, option_value, autoload) VALUES (%s, %s, 'no') ON DUPLICATE KEY UPDATE option_value = VALUES(option_value)",
+					self::SCHEMA_OPTION,
+					self::SCHEMA_VERSION
+				)
+			);
+			$version = $db->get_var( $db->prepare( "SELECT option_value FROM {$options} WHERE option_name = %s", self::SCHEMA_OPTION ) );
+			if ( ! empty( $db->last_error ) || self::SCHEMA_VERSION !== $version ) {
+				throw new \RuntimeException( 'Lock foundation schema marker could not be verified.' );
+			}
+			$session->assert_connection();
+			self::clear_option_cache( self::SCHEMA_OPTION );
 		} finally {
 			$session->close();
 		}
@@ -86,7 +96,7 @@ final class WP_Lock_Foundations {
 			throw new \InvalidArgumentException( 'Unsupported lock protocol version.' );
 		}
 		$namespace = self::namespace();
-		$session = self::connect( $namespace );
+		$session   = self::connect( $namespace );
 		try {
 			self::verify_schema( $session->db, $namespace );
 			$session->assert_connection();
@@ -103,10 +113,15 @@ final class WP_Lock_Foundations {
 				throw new \RuntimeException( 'Lock owners remain; resolve them before switching protocols.' );
 			}
 			$options = self::quote( $namespace . 'options' );
-			$session->checked( $session->db->prepare(
-				"INSERT INTO {$options} (option_name, option_value, autoload) VALUES (%s, %s, 'no') ON DUPLICATE KEY UPDATE option_value = VALUES(option_value)",
-				self::PROTOCOL_OPTION, $target
-			), false, 'protocol-switch' );
+			$session->checked(
+				$session->db->prepare(
+					"INSERT INTO {$options} (option_name, option_value, autoload) VALUES (%s, %s, 'no') ON DUPLICATE KEY UPDATE option_value = VALUES(option_value)",
+					self::PROTOCOL_OPTION,
+					$target
+				),
+				false,
+				'protocol-switch'
+			);
 			if ( $target !== $session->option( self::PROTOCOL_OPTION ) ) {
 				throw new \RuntimeException( 'Lock protocol switch could not be verified.' );
 			}
@@ -119,15 +134,20 @@ final class WP_Lock_Foundations {
 	/** Record the legacy owner-table version only after checking the actual primary schema. */
 	public static function record_legacy_schema_version(): void {
 		$namespace = self::namespace();
-		$session = self::connect( $namespace );
+		$session   = self::connect( $namespace );
 		try {
 			self::verify_schema( $session->db, $namespace, false );
 			$session->assert_connection();
 			$options = self::quote( $namespace . 'options' );
-			$session->checked( $session->db->prepare(
-				"INSERT INTO {$options} (option_name, option_value, autoload) VALUES (%s, %s, 'no') ON DUPLICATE KEY UPDATE option_value = VALUES(option_value)",
-				WP_Lock_Backend_DB::SCHEMA_VERSION_OPTION, WP_Lock_Backend_DB::SCHEMA_VERSION
-			), false, 'legacy-schema-version' );
+			$session->checked(
+				$session->db->prepare(
+					"INSERT INTO {$options} (option_name, option_value, autoload) VALUES (%s, %s, 'no') ON DUPLICATE KEY UPDATE option_value = VALUES(option_value)",
+					WP_Lock_Backend_DB::SCHEMA_VERSION_OPTION,
+					WP_Lock_Backend_DB::SCHEMA_VERSION
+				),
+				false,
+				'legacy-schema-version'
+			);
 			if ( WP_Lock_Backend_DB::SCHEMA_VERSION !== $session->option( WP_Lock_Backend_DB::SCHEMA_VERSION_OPTION ) ) {
 				throw new \RuntimeException( 'Legacy lock schema version could not be verified.' );
 			}
@@ -146,7 +166,7 @@ final class WP_Lock_Foundations {
 
 	private function option( string $name ): ?string {
 		$options = self::quote( $this->namespace . 'options' );
-		$value = $this->db->get_var( $this->db->prepare( "SELECT option_value FROM {$options} WHERE option_name = %s", $name ) );
+		$value   = $this->db->get_var( $this->db->prepare( "SELECT option_value FROM {$options} WHERE option_name = %s", $name ) );
 		if ( ! empty( $this->db->last_error ) ) {
 			throw new \RuntimeException( 'Unable to verify lock protocol or schema version.' );
 		}
@@ -174,7 +194,7 @@ final class WP_Lock_Foundations {
 	public static function open( ?string $namespace = null, ?callable $wait_guard = null ): self {
 		global $wpdb;
 		$namespace = null === $namespace ? self::namespace() : $namespace;
-		$session = self::connect( $namespace, $wait_guard );
+		$session   = self::connect( $namespace, $wait_guard );
 		try {
 			if ( null !== $wait_guard ) {
 				$wait_guard();
@@ -272,10 +292,14 @@ final class WP_Lock_Foundations {
 	}
 
 	private static function column( $db, string $table, string $column ): ?array {
-		$row = $db->get_row( $db->prepare(
-			'SELECT data_type AS data_type, column_type AS column_type, is_nullable AS is_nullable, character_maximum_length AS character_maximum_length, column_default AS column_default, extra AS extra FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = %s AND column_name = %s',
-			$table, $column
-		), ARRAY_A );
+		$row = $db->get_row(
+			$db->prepare(
+				'SELECT data_type AS data_type, column_type AS column_type, is_nullable AS is_nullable, character_maximum_length AS character_maximum_length, column_default AS column_default, extra AS extra FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = %s AND column_name = %s',
+				$table,
+				$column
+			),
+			ARRAY_A
+		);
 		if ( ! empty( $db->last_error ) ) {
 			throw new \RuntimeException( 'Unable to inspect lock foundation columns.' );
 		}
@@ -283,18 +307,25 @@ final class WP_Lock_Foundations {
 	}
 
 	private static function index( $db, string $table, string $name ): ?array {
-		$row = $db->get_row( $db->prepare(
-			'SELECT non_unique AS non_unique, column_name AS column_name, sub_part AS sub_part FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = %s AND index_name = %s AND seq_in_index = 1',
-			$table, $name
-		), ARRAY_A );
+		$row = $db->get_row(
+			$db->prepare(
+				'SELECT non_unique AS non_unique, column_name AS column_name, sub_part AS sub_part FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = %s AND index_name = %s AND seq_in_index = 1',
+				$table,
+				$name
+			),
+			ARRAY_A
+		);
 		if ( ! empty( $db->last_error ) ) {
 			throw new \RuntimeException( 'Unable to inspect lock foundation indexes.' );
 		}
 		if ( is_array( $row ) ) {
-			$row['parts'] = $db->get_var( $db->prepare(
-				'SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = %s AND index_name = %s',
-				$table, $name
-			) );
+			$row['parts'] = $db->get_var(
+				$db->prepare(
+					'SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = %s AND index_name = %s',
+					$table,
+					$name
+				)
+			);
 			if ( ! empty( $db->last_error ) ) {
 				throw new \RuntimeException( 'Unable to inspect lock foundation index parts.' );
 			}
@@ -304,17 +335,19 @@ final class WP_Lock_Foundations {
 
 	private static function verify_schema( $db, string $namespace, bool $foundation = true ): void {
 		foreach ( $foundation ? array( WP_Lock_Backend_DB::TABLE_NAME, self::RESOURCE_TABLE ) : array( WP_Lock_Backend_DB::TABLE_NAME ) as $suffix ) {
-			$engine = $db->get_var( $db->prepare(
-				'SELECT engine AS engine FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = %s',
-				$namespace . $suffix
-			) );
+			$engine = $db->get_var(
+				$db->prepare(
+					'SELECT engine AS engine FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = %s',
+					$namespace . $suffix
+				)
+			);
 			if ( ! empty( $db->last_error ) || 'InnoDB' !== $engine ) {
 				throw new \RuntimeException( 'Lock foundation requires verified InnoDB tables.' );
 			}
 		}
-		$owner = $namespace . WP_Lock_Backend_DB::TABLE_NAME;
+		$owner    = $namespace . WP_Lock_Backend_DB::TABLE_NAME;
 		$resource = $namespace . self::RESOURCE_TABLE;
-		$checks = array(
+		$checks   = array(
 			array( $owner, 'id', 'int', null, 'NO' ),
 			array( $owner, 'lock_key', 'varchar', 50, 'YES' ),
 			array( $owner, 'original_key', 'varchar', 50, 'YES' ),
@@ -358,10 +391,14 @@ final class WP_Lock_Foundations {
 		if ( ! $foundation ) {
 			return;
 		}
-		$invalid = $db->get_var( $db->prepare(
-			'SELECT COUNT(DISTINCT index_name) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = %s AND non_unique = 0 AND index_name NOT IN (%s, %s)',
-			$owner, 'PRIMARY', 'attempt_token'
-		) );
+		$invalid = $db->get_var(
+			$db->prepare(
+				'SELECT COUNT(DISTINCT index_name) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = %s AND non_unique = 0 AND index_name NOT IN (%s, %s)',
+				$owner,
+				'PRIMARY',
+				'attempt_token'
+			)
+		);
 		if ( ! empty( $db->last_error ) || 0 !== (int) $invalid ) {
 			throw new \RuntimeException( 'Lock foundation owner index verification failed.' );
 		}
@@ -374,14 +411,20 @@ final class WP_Lock_Foundations {
 		}
 		$result = $rows ? $this->db->get_results( $sql, ARRAY_A ) : $this->db->query( $sql );
 		if ( false === $result || ! empty( $this->db->last_error ) ) {
-			$operation = preg_match( '/\A\s*(SELECT|INSERT|DELETE|UPDATE|COMMIT|ROLLBACK|START|SET|CREATE|ALTER)\b/i', $sql, $matches ) ? strtoupper( $matches[1] ) : 'OTHER';
+			$operation                = preg_match( '/\A\s*(SELECT|INSERT|DELETE|UPDATE|COMMIT|ROLLBACK|START|SET|CREATE|ALTER)\b/i', $sql, $matches ) ? strtoupper( $matches[1] ) : 'OTHER';
 			list( $errno, $sqlstate ) = $this->db->lock_error_codes();
-			throw new WP_Lock_Foundation_SQL_Error( sprintf(
-				'Lock foundation SQL failed (operation=%s, tag=%s, result=%s, last_error=%s, errno=%s, sqlstate=%s).',
-				$operation, $tag, false === $result ? 'false' : 'non-false', empty( $this->db->last_error ) ? 'empty' : 'present',
-				null === $errno ? 'unavailable' : (string) $errno,
-				null === $sqlstate ? 'unavailable' : $sqlstate
-			), null === $errno ? 0 : $errno );
+			throw new WP_Lock_Foundation_SQL_Error(
+				sprintf(
+					'Lock foundation SQL failed (operation=%s, tag=%s, result=%s, last_error=%s, errno=%s, sqlstate=%s).',
+					$operation,
+					$tag,
+					false === $result ? 'false' : 'non-false',
+					empty( $this->db->last_error ) ? 'empty' : 'present',
+					null === $errno ? 'unavailable' : (string) $errno,
+					null === $sqlstate ? 'unavailable' : $sqlstate
+				),
+				null === $errno ? 0 : $errno
+			);
 		}
 		if ( 'transaction-begin' === $tag ) {
 			$this->in_transaction = true;
@@ -461,7 +504,7 @@ final class WP_Lock_Foundations {
 		if ( ! $this->in_transaction || $this->resource_locked ) {
 			throw new \LogicException( 'Resource lock requires a fresh foundation transaction.' );
 		}
-		$key = md5( $id );
+		$key   = md5( $id );
 		$table = self::quote( $this->namespace . self::RESOURCE_TABLE );
 		// Take the exclusive duplicate-key lock before the locking read.
 		$this->checked( $this->db->prepare( "INSERT INTO {$table} (lock_key) VALUES (%s) ON DUPLICATE KEY UPDATE lock_key = lock_key", $key ), false, 'resource-insert' );
@@ -470,7 +513,7 @@ final class WP_Lock_Foundations {
 			throw new \RuntimeException( 'Resource row could not be locked.' );
 		}
 		$this->resource_locked = true;
-		$this->locked_key = $key;
+		$this->locked_key      = $key;
 	}
 
 	public function current_owners( string $id ): array {
@@ -492,12 +535,17 @@ final class WP_Lock_Foundations {
 
 	public function delete_owner( string $id, int $owner_id, ?string $token ): int {
 		$this->require_resource_lock( $id );
-		$table = self::quote( $this->namespace . WP_Lock_Backend_DB::TABLE_NAME );
+		$table           = self::quote( $this->namespace . WP_Lock_Backend_DB::TABLE_NAME );
 		$token_condition = null === $token ? 'attempt_token IS NULL' : $this->db->prepare( 'attempt_token = %s', $token );
-		return $this->checked( $this->db->prepare(
-			"DELETE FROM {$table} WHERE id = %d AND lock_key = %s AND {$token_condition}",
-			$owner_id, md5( $id )
-		), false, 'owner-delete' );
+		return $this->checked(
+			$this->db->prepare(
+				"DELETE FROM {$table} WHERE id = %d AND lock_key = %s AND {$token_condition}",
+				$owner_id,
+				md5( $id )
+			),
+			false,
+			'owner-delete'
+		);
 	}
 
 	public function insert_owner( string $id, int $level, string $token, float $expire = 0.0, ?string $original_key = null ): int {
@@ -505,21 +553,33 @@ final class WP_Lock_Foundations {
 		if ( ! in_array( $level, array( WP_Lock::READ, WP_Lock::WRITE ), true ) || ! preg_match( '/\A[0-9a-f]{32}\z/D', $token ) ) {
 			throw new \InvalidArgumentException( 'Invalid foundation owner or attempt token.' );
 		}
-		$table = self::quote( $this->namespace . WP_Lock_Backend_DB::TABLE_NAME );
+		$table    = self::quote( $this->namespace . WP_Lock_Backend_DB::TABLE_NAME );
 		$original = null === $original_key ? 'NULL' : $this->db->prepare( '%s', $original_key );
-		$this->checked( $this->db->prepare(
-			"INSERT INTO {$table} (lock_key, original_key, level, pid, cid, attempt_token, expire) VALUES (%s, {$original}, %d, %d, CONNECTION_ID(), %s, %f)",
-			md5( $id ), $level, getmypid() ?: 0, $token, $expire
-		), false, 'owner-insert' );
+		$this->checked(
+			$this->db->prepare(
+				"INSERT INTO {$table} (lock_key, original_key, level, pid, cid, attempt_token, expire) VALUES (%s, {$original}, %d, %d, CONNECTION_ID(), %s, %f)",
+				md5( $id ),
+				$level,
+				// phpcs:ignore Universal.Operators.DisallowShortTernary.Found -- Convert a failed PID lookup to zero without calling it twice.
+				getmypid() ?: 0,
+				$token,
+				$expire
+			),
+			false,
+			'owner-insert'
+		);
 		return (int) $this->db->insert_id;
 	}
 
 	public function exists( string $id, int $level ): bool {
 		$table = self::quote( $this->namespace . WP_Lock_Backend_DB::TABLE_NAME );
-		$found = $this->db->get_var( $this->db->prepare(
-			"SELECT 1 FROM {$table} WHERE lock_key = %s AND level >= %d AND (expire = 0 OR expire > UNIX_TIMESTAMP(NOW(6))) LIMIT 1",
-			md5( $id ), $level
-		) );
+		$found = $this->db->get_var(
+			$this->db->prepare(
+				"SELECT 1 FROM {$table} WHERE lock_key = %s AND level >= %d AND (expire = 0 OR expire > UNIX_TIMESTAMP(NOW(6))) LIMIT 1",
+				md5( $id ),
+				$level
+			)
+		);
 		if ( ! empty( $this->db->last_error ) ) {
 			throw new \RuntimeException( 'Unable to check lock existence because of a database error.' );
 		}
@@ -530,10 +590,15 @@ final class WP_Lock_Foundations {
 	public function find_attempt( string $id, string $token ): array {
 		$this->require_resource_lock( $id );
 		$table = self::quote( $this->namespace . WP_Lock_Backend_DB::TABLE_NAME );
-		return $this->checked( $this->db->prepare(
-			"SELECT id, lock_key, attempt_token, expire FROM {$table} WHERE lock_key = %s AND attempt_token = %s FOR UPDATE",
-			md5( $id ), $token
-		), true, 'attempt-select' );
+		return $this->checked(
+			$this->db->prepare(
+				"SELECT id, lock_key, attempt_token, expire FROM {$table} WHERE lock_key = %s AND attempt_token = %s FOR UPDATE",
+				md5( $id ),
+				$token
+			),
+			true,
+			'attempt-select'
+		);
 	}
 
 	public static function new_token(): string {
@@ -551,9 +616,9 @@ final class WP_Lock_Foundations {
 			throw new \LogicException( 'No foundation transaction to commit.' );
 		}
 		$this->checked( 'COMMIT', false, 'transaction-commit' );
-		$this->in_transaction = false;
+		$this->in_transaction  = false;
 		$this->resource_locked = false;
-		$this->locked_key = null;
+		$this->locked_key      = null;
 	}
 
 	public function rollback(): void {
@@ -562,9 +627,9 @@ final class WP_Lock_Foundations {
 		}
 		$this->db->finish_wait();
 		$this->checked( 'ROLLBACK', false, 'transaction-rollback' );
-		$this->in_transaction = false;
+		$this->in_transaction  = false;
 		$this->resource_locked = false;
-		$this->locked_key = null;
+		$this->locked_key      = null;
 	}
 
 	public function close(): void {

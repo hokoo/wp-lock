@@ -18,7 +18,7 @@ class WP_Lock_Foundation_DB extends \wpdb {
 			call_user_func( $this->wait_guard );
 		}
 		if ( $this->finish_wait_on_query ) {
-			$this->wait_guard = null;
+			$this->wait_guard           = null;
 			$this->finish_wait_on_query = false;
 		}
 		return parent::query( $query );
@@ -29,7 +29,7 @@ class WP_Lock_Foundation_DB extends \wpdb {
 	}
 
 	public function finish_wait(): void {
-		$this->wait_guard = null;
+		$this->wait_guard           = null;
 		$this->finish_wait_on_query = false;
 	}
 
@@ -43,6 +43,7 @@ class WP_Lock_Foundation_DB extends \wpdb {
 			return array( null, null );
 		}
 		try {
+			// phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_errno,WordPress.DB.RestrictedFunctions.mysql_mysqli_sqlstate -- Error codes belong to this controlled connection, not the caller's global wpdb.
 			return array( mysqli_errno( $this->dbh ), mysqli_sqlstate( $this->dbh ) );
 		} catch ( \Throwable $error ) {
 			return array( null, null );

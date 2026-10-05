@@ -9,7 +9,7 @@ class WP_Lock {
 	 * @var int A non-exclusive protected read lock.
 	 * Other processes can read, but not write. A shared lock.
 	 */
-	const READ  = 8;
+	const READ = 8;
 
 	/**
 	 * @var int An exclusive write lock.
@@ -31,7 +31,7 @@ class WP_Lock {
 	/**
 	 * @var bool Whether this instance currently holds a lock.
 	 */
-	private $held = false;
+	private $held       = false;
 	private $unresolved = false;
 
 	/**
@@ -65,11 +65,14 @@ class WP_Lock {
 
 		$this->lock_backend = $lock_backend;
 
-		register_shutdown_function( function( $lock ) {
-			if ( $lock->held || $lock->unresolved ) {
-				trigger_error( 'Not all locks released for ' . $lock->id );
-			}
-		}, $this );
+		register_shutdown_function(
+			function ( $lock ) {
+				if ( $lock->held || $lock->unresolved ) {
+						trigger_error( 'Not all locks released for ' . $lock->id );
+				}
+			},
+			$this
+		);
 	}
 
 	/**
@@ -129,7 +132,7 @@ class WP_Lock {
 			throw $error;
 		}
 
-		$this->held = false;
+		$this->held       = false;
 		$this->unresolved = false;
 	}
 

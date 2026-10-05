@@ -2,7 +2,7 @@
 
 The root [ROADMAP.md](../../ROADMAP.md) owns versions and release scope. This directory contains execution contracts, not another release schedule. The [issue register](../issues/README.md) records findings; the [audit](../review-2026-09-29/assessment.md) provides research evidence.
 
-There are **four mandatory epics and 15 tasks** for one planned 3.0.0 release, including four independent QA tasks. B0–B2 are complete, including [E3-QA](qa/E3.md) with `pass_with_notes`. OWNER authorized B3 execution and accepted E4's root model on 2026-10-02; B3 is completed through [PR #11](https://github.com/hokoo/wp-lock/pull/11) and [repair PR #12](https://github.com/hokoo/wp-lock/pull/12), with fresh independent [E4-QA](qa/E4.md) returning `pass_with_notes`. OWNER authorized B4–B5 execution, push, PR creation, and merge on 2026-10-02. B4 and B5 are completed through PRs #14/#15/#16 with fresh independent [E5-QA](qa/E5.md#final-repaired-delivery--2026-10-02) `pass_with_notes`; all 15 tasks are delivered on the unpublished 3.0.0 candidate. Publication remains outside scope. OWNER authorized B1 and B2 execution on 2026-10-01. Renewal is deferred as ISSUE-012 without a version or task breakdown.
+There are **five mandatory epics and 18 tasks** for one planned 3.0.0 release, including five independent QA tasks. B0–B5 and their original 15 tasks are complete. Fresh independent [E5-QA](qa/E5.md#final-repaired-delivery--2026-10-02) returned `pass_with_notes` for the earlier unpublished candidate. [E7](E7-static-analysis.md) adds a pending static-analysis gate and requires a revised candidate before publication; OWNER authorized B6 execution and selected `gpt-6.1-sol` for root on 2026-10-05. E7-01 and E7-02 are in review; candidate verification and delivery remain pending. Prior B0–B5 delivery and QA evidence remains tied to its recorded revisions. Publication remains outside scope. Renewal is deferred as ISSUE-012 without a version or task breakdown.
 
 ## Navigation
 
@@ -12,6 +12,7 @@ There are **four mandatory epics and 15 tasks** for one planned 3.0.0 release, i
 | [E3. Correct ownership](E3-acquisition.md) | E3-02–03, E3-QA | B1–B2 |
 | [E4. Timing and recovery](E4-leases-and-recovery.md) | E4-01–03, E4-QA | B3 |
 | [E5. Migration and release](E5-migration-and-release.md) | E5-01–04, E5-QA | B4–B5 |
+| [E7. Static analysis and coding standards](E7-static-analysis.md) | E7-01–02, E7-QA | B6 |
 
 The former E3-01 architecture task is folded into the single E1-01 ADR. [Batches](batches.md) define order and gates.
 

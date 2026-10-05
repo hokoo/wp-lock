@@ -160,6 +160,10 @@ Version 2.0 contains intentional breaking changes:
 
 Review code that assumed indefinite blocking, nested acquisition, implicit argument coercion, or a void custom-backend `release()` before upgrading. See [CHANGELOG.md](CHANGELOG.md) for the release summary.
 
+## Contributing
+
+Use PHP 7.4 or newer with Composer and the PHP DOM, SimpleXML, XML, XMLWriter, and mbstring extensions. Install development dependencies with `composer install`, then run `composer lint` and `composer analyse`. Both commands check every PHP file in `lib/` and `plugin.php`; PHPStan targets PHP 7.4 at level 3, the lowest measured level that exposed the lock-owner annotation and catch-path variable findings without changing established runtime guards. The WordPress declarations used by PHPStan are analysis-only and provide limited type information.
+
 ## Origin
 
 This project originated as a fork of [soulseekah/wp-lock](https://github.com/soulseekah/wp-lock) by Gennady Kovshenin and is now maintained as a standalone package.

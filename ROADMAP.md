@@ -1,6 +1,6 @@
 # WP Lock roadmap
 
-Updated: 2026-10-02. Published baseline: **2.0.0**, commit `26d3a07ca773c61138dc881f4a0c6ac922f37617`.
+Updated: 2026-10-05. Published baseline: **2.0.0**, commit `26d3a07ca773c61138dc881f4a0c6ac922f37617`.
 
 This is the single roadmap for release scope. The [issue register](docs/issues/README.md) records findings and closure criteria; [task contracts](docs/planning/README.md) and [batches](docs/planning/batches.md) define future execution. Audit reports retain research evidence, not release commitments. All project documentation is in English.
 
@@ -9,9 +9,9 @@ This is the single roadmap for release scope. The [issue register](docs/issues/R
 | Version | State | Outcome | Epics |
 | --- | --- | --- | --- |
 | 2.0.0 | Current baseline | Existing API and backend examined by the audit | History in [CHANGELOG](CHANGELOG.md) |
-| **3.0.0** | **verified unpublished candidate** | Correct ownership, lifetime, recovery, migration, and verification of identified issues | **E1, E3, E4, E5**; 15 tasks including four independent QA gates |
+| **3.0.0** | **prior candidate verified; added quality gate pending** | Correct ownership, lifetime, recovery, migration, verification of identified issues, and static analysis | **E1, E3, E4, E5, E7**; 18 tasks including five independent QA gates |
 
-Release dates are not assigned. B0 and E1-QA are complete after [PR #7](https://github.com/hokoo/wp-lock/pull/7) merged into `release/3.0`; B1 / E3-02 was delivered through [PR #8](https://github.com/hokoo/wp-lock/pull/8); B2 / E3-03 was delivered through [PR #9](https://github.com/hokoo/wp-lock/pull/9), and [E3-QA](docs/planning/qa/E3.md) passed with nonblocking notes. OWNER authorized B3 execution and accepted E4's root model on 2026-10-02; B3 is completed through [PR #11](https://github.com/hokoo/wp-lock/pull/11) and [repair PR #12](https://github.com/hokoo/wp-lock/pull/12), with fresh independent [E4-QA](docs/planning/qa/E4.md) returning `pass_with_notes`. OWNER authorized B4–B5 execution, push, PR creation, and merge on 2026-10-02. B4/B5 are completed through [PR #14](https://github.com/hokoo/wp-lock/pull/14), [PR #15](https://github.com/hokoo/wp-lock/pull/15) and [repair PR #16](https://github.com/hokoo/wp-lock/pull/16). Fresh independent [E5-QA](docs/planning/qa/E5.md#final-repaired-delivery--2026-10-02) returned `pass_with_notes` on merged `8653f46` and frozen package `84a528d`; ISSUE-001–011 are resolved for this candidate. Publication remains outside scope. Plugin metadata identifies 3.0.0; its changelog remains Unreleased and no tag is published. Renewal (ISSUE-012) is deferred without a release target.
+Release dates are not assigned. B0 and E1-QA are complete after [PR #7](https://github.com/hokoo/wp-lock/pull/7) merged into `release/3.0`; B1 / E3-02 was delivered through [PR #8](https://github.com/hokoo/wp-lock/pull/8); B2 / E3-03 was delivered through [PR #9](https://github.com/hokoo/wp-lock/pull/9), and [E3-QA](docs/planning/qa/E3.md) passed with nonblocking notes. OWNER authorized B3 execution and accepted E4's root model on 2026-10-02; B3 is completed through [PR #11](https://github.com/hokoo/wp-lock/pull/11) and [repair PR #12](https://github.com/hokoo/wp-lock/pull/12), with fresh independent [E4-QA](docs/planning/qa/E4.md) returning `pass_with_notes`. OWNER authorized B4–B5 execution, push, PR creation, and merge on 2026-10-02. B4/B5 are completed through [PR #14](https://github.com/hokoo/wp-lock/pull/14), [PR #15](https://github.com/hokoo/wp-lock/pull/15) and [repair PR #16](https://github.com/hokoo/wp-lock/pull/16). Fresh independent [E5-QA](docs/planning/qa/E5.md#final-repaired-delivery--2026-10-02) returned `pass_with_notes` on merged `8653f46` and frozen package `84a528d`; ISSUE-001–011 are resolved for that candidate. E7 adds a pending gate to the same unpublished version, so a revised candidate and final QA are required before publication. Plugin metadata identifies 3.0.0; its changelog remains Unreleased and no tag is published. Renewal (ISSUE-012) is deferred without a release target.
 
 <a id="v300"></a>
 ## 3.0.0 — Resolve identified issues
@@ -24,18 +24,20 @@ One major release covers potential changes to error contracts, supported configu
 | [E3. Correct ownership](docs/planning/E3-acquisition.md) | Shared READ/exclusive WRITE ownership on supported RR/RC, independent of caller transactions | ISSUE-001, ISSUE-003, ISSUE-006, ISSUE-007, ISSUE-011 | B1–B2 |
 | [E4. Timing and recovery](docs/planning/E4-leases-and-recovery.md) | Finite leases/deadlines and conservative recovery, including database uncertainty | ISSUE-002, ISSUE-004–005, ISSUE-008; downstream recovery for ISSUE-006 | B3 |
 | [E5. Migration and release](docs/planning/E5-migration-and-release.md) | Verified switching, rollback, CI, documentation, and candidate | ISSUE-009–010; final gate for ISSUE-001–011 | B4–B5 |
+| [E7. Static analysis and coding standards](docs/planning/E7-static-analysis.md) | Required style and static analysis on the revised candidate | Added quality gate; no new audit issue | B6 |
 
 E2's legacy-only guards and internal checkpoint are retired; lasting error and validation requirements belong to E3/E4. E6's renewal breakdown is retired; ISSUE-012 remains deferred. Neither retirement removes a 3.0.0 safety criterion.
 
 3.0.0 acceptance criteria:
 
-- All 15 tasks meet their DoD and E1, E3, E4, and E5 pass independent QA.
+- All 18 tasks meet their DoD and E1, E3, E4, E5, and E7 pass independent QA on their stated revisions; E7-QA accepts the revised final candidate.
 - ISSUE-001–011 have verified fixes or explicitly agreed behavior in supported configurations, directed regression evidence, and final-candidate validation.
 - Shared READ/exclusive WRITE works with real successful acquisition on supported MySQL/MariaDB RR and RC configurations. Conflicting valid owners cannot coexist; readers can coexist. Blanket RC refusal cannot close this criterion.
 - Ownership is independent of the caller's business transaction. Database failures and uncertain commit outcomes cannot appear as success, ordinary contention, or proven absence. Owner identity and the full resource ID are preserved.
 - TTL and deadline contracts are explicit and tested. Expiry, cleanup, and predecessor release cannot remove a valid successor. TTL=0 uses conservative handling and verified manual recovery.
 - Upgrade and rollback from 2.0.0 are rehearsed. Incompatible old/new protocols cannot operate simultaneously; TTL=0 owners are resolved before switching.
 - Required CI passes without skipped concurrency checks on the agreed matrix. The existing >=90% line coverage gate remains. Documentation, metadata, package contents, QA, and commit/merge evidence match the candidate.
+- Required PHP_CodeSniffer/WPCS and PHPStan checks cover `lib/` and `plugin.php` on pull requests and pushes; new findings fail CI, and any legacy exceptions are narrow and explained.
 
 Excluded: renewal API, application accounting, automatic fencing of arbitrary external writes, unconditional proxy/cluster support, and deployment to consumers. Deferring renewal does not defer correcting TTL behavior.
 
@@ -48,6 +50,7 @@ flowchart LR
     B2 --> B3["B3: timing, recovery, and E4 QA"]
     B3 --> B4["B4: migration, CI, documentation"]
     B4 --> B5["B5: candidate and E5 QA"]
+    B5 --> B6["B6: static analysis and revised candidate QA"]
 ```
 
 [Batches](docs/planning/batches.md) define dependency gates and serial work in the shared checkout. Global Gitflow targets `release/3.0`, with one branch and one MR/PR per batch, created from the updated release branch. An issue may span epics; closure requires every linked criterion, not the first local fix.
